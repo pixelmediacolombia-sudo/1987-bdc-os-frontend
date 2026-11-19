@@ -1,8 +1,10 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import LoginScreen from './LoginScreen'
 import './App.css'
 
 type Section = 'Inicio' | 'Bandeja' | 'Contactos' | 'Oportunidades' | 'Automatizaciones' | 'Calendario' | 'Reportes' | 'Configuración'
 type Lead = { id: number; name: string; company: string; channel: string; summary: string; time: string; status: 'Prioridad' | 'Nuevo' | 'Seguimiento'; initials: string; tone: string }
+type AuthUser = { id: string; email: string; displayName: string; accountType: 'admin' | 'user' }
 type IconName = 'home' | 'inbox' | 'users' | 'pipeline' | 'automation' | 'calendar' | 'chart' | 'settings' | 'search' | 'plus' | 'arrow' | 'clock' | 'phone' | 'mail' | 'dots' | 'chevron' | 'close' | 'menu' | 'spark'
 
 const paths: Record<IconName, ReactNode> = {
@@ -33,6 +35,9 @@ const demo: Lead[] = [
 ]
 
 function App() {
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [authStatus, setAuthStatus] = useState<'checking' | 'signed-out' | 'signed-in'>('checking')
+  const [authError, setAuthError] = useState('')
   const [active, setActive] = useState<Section>('Inicio')
   const [filter, setFilter] = useState<'Todo' | 'Prioridad' | 'Nuevos'>('Todo')
   const [search, setSearch] = useState('')
@@ -40,11 +45,47 @@ function App() {
   const [selected, setSelected] = useState<Lead | null>(null)
   const [creating, setCreating] = useState(false)
   const [mobileNav, setMobileNav] = useState(false)
+  useEffect(() => {
+    let mounted = true
+    fetch('/backend/auth/session', { credentials: 'include' }).then(async (response) => {
+      if (response.status === 401) return null
+      if (!response.ok) throw new Error('No pudimos verificar la sesión.')
+      return response.json() as Promise<{ authenticated: boolean; user?: AuthUser }>
+    }).then((payload) => {
+      if (!mounted) return
+      if (payload?.authenticated && payload.user) { setAuthUser(payload.user); setAuthStatus('signed-in') }
+      else setAuthStatus('signed-out')
+    }).catch(() => {
+      if (mounted) { setAuthError('No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.'); setAuthStatus('signed-out') }
+    })
+    return () => { mounted = false }
+  }, [])
   const visible = useMemo(() => leads.filter((lead) => {
     const matchStatus = filter === 'Todo' || (filter === 'Prioridad' ? lead.status === 'Prioridad' : lead.status === 'Nuevo')
     const query = search.trim().toLocaleLowerCase('es')
     return matchStatus && (!query || `${lead.name} ${lead.channel} ${lead.summary}`.toLocaleLowerCase('es').includes(query))
   }), [filter, leads, search])
+  async function signIn(email: string, password: string) {
+    setAuthError('')
+    try {
+      const response = await fetch('/backend/auth/login', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) })
+      const payload = await response.json() as { error?: string; user?: AuthUser }
+      if (!response.ok || !payload.user) { setAuthError(payload.error ?? 'No pudimos iniciar sesión.'); return }
+      setAuthUser(payload.user)
+      setAuthStatus('signed-in')
+    } catch {
+      setAuthError('No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.')
+    }
+  }
+  async function signOut() {
+    await fetch('/backend/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined)
+    setAuthUser(null)
+    setAuthStatus('signed-out')
+    setActive('Inicio')
+  }
+  if (authStatus === 'checking') return <main className="auth-loading" aria-live="polite"><span className="brand"><span>BDC</span><i>OS</i><small>CRM</small></span><span>Verificando sesión local…</span></main>
+  if (authStatus !== 'signed-in' || !authUser) return <LoginScreen error={authError} onSubmit={signIn} />
+  const userInitials = authUser.displayName.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'BD'
   function addLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget); const name = String(data.get('name') ?? '').trim(); if (!name) return
     const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
@@ -56,10 +97,10 @@ function App() {
       <a href="#inicio" className="brand" onClick={(e) => { e.preventDefault(); setActive('Inicio'); setMobileNav(false) }} aria-label="BDC OS CRM inicio"><span>BDC</span><i>OS</i><small>CRM</small></a>
       <div className="workspace"><span className="workspace-mark">19</span><span><strong>1987 Marketing</strong><small>Espacio de trabajo</small></span><Icon name="chevron" size={15} /></div>
       <nav aria-label="Navegación principal">{['Trabajo', 'Gestión'].map((group) => <div className="nav-group" key={group}><p>{group}</p>{nav.filter((item) => item.group === group).map((item) => <button key={item.name} className={`nav-item ${active === item.name ? 'is-active' : ''}`} aria-current={active === item.name ? 'page' : undefined} onClick={() => { setActive(item.name); setMobileNav(false) }}><Icon name={item.icon} /><span>{item.name}</span>{item.name === 'Bandeja' && <b>8</b>}</button>)}</div>)}</nav>
-      <div className="sidebar-bottom"><div className="team-line"><span className="team-faces"><i>CM</i><i>JR</i><i>+</i></span><span><strong>Equipo comercial</strong><small>3 integrantes</small></span><Icon name="dots" size={16} /></div><button className="profile" onClick={() => setActive('Configuración')}><i>CM</i><span><strong>Camila Martínez</strong><small>Administradora</small></span><Icon name="dots" size={16} /></button></div>
+      <div className="sidebar-bottom"><div className="team-line"><span className="team-faces"><i>{userInitials}</i><i>+</i></span><span><strong>Equipo comercial</strong><small>Espacio local</small></span><Icon name="dots" size={16} /></div><button className="profile" onClick={() => void signOut()} aria-label="Cerrar sesión"><i>{userInitials}</i><span><strong>{authUser.displayName}</strong><small>{authUser.accountType === 'admin' ? 'Admin BDC OS' : 'Usuario'}</small></span><span className="logout-label">Salir</span></button></div>
     </aside>
     <div className="main-column">
-      <header className="topbar"><button className="mobile-menu" aria-label="Abrir navegación" onClick={() => setMobileNav(true)}><Icon name="menu" /></button><div className="breadcrumb"><span>Espacio de trabajo</span><i>/</i><strong>{active}</strong></div><label className="search"><Icon name="search" size={16} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar contactos" aria-label="Buscar en el CRM" /><kbd>⌘ K</kbd></label><span className="demo-tag"><i /> Entorno de prueba</span><button className="top-avatar" aria-label="Perfil de Camila Martínez" onClick={() => setActive('Configuración')}>CM</button></header>
+      <header className="topbar"><button className="mobile-menu" aria-label="Abrir navegación" onClick={() => setMobileNav(true)}><Icon name="menu" /></button><div className="breadcrumb"><span>Espacio de trabajo</span><i>/</i><strong>{active}</strong></div><label className="search"><Icon name="search" size={16} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar contactos" aria-label="Buscar en el CRM" /><kbd>⌘ K</kbd></label><span className="demo-tag"><i /> Entorno de prueba</span><button className="top-avatar" aria-label={`Perfil de ${authUser.displayName}`} onClick={() => setActive('Configuración')}>{userInitials}</button></header>
       <main className="content">
         {active === 'Inicio' ? <>
           <div className="page-heading"><div><p className="eyebrow">MIÉRCOLES, 19 DE NOVIEMBRE</p><h1>{copy[active]}</h1><p className="subtitle">Una vista clara para saber qué necesita atención y cuál es el siguiente paso.</p></div><button className="primary" onClick={() => setCreating(true)}><Icon name="plus" size={16} /> Nueva oportunidad</button></div>
