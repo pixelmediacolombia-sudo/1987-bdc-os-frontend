@@ -30,6 +30,18 @@ El rol `admin` entra al panel global para revisar el directorio, el estado y los
 
 Las invitaciones son de un solo uso y vencen en 72 horas. En Compose local, el correo queda capturado por Mailpit en <http://localhost:8025>; no sale a una dirección externa. En despliegues, configura `BDC_APP_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` y `SMTP_FROM_NAME` en el backend. Sin SMTP configurado, el panel presenta un enlace copiable de respaldo.
 
+## Arquitectura del frontend
+
+El código de `src` sigue Onion Architecture. Las dependencias apuntan hacia el dominio; el dominio no importa React, HTTP ni infraestructura.
+
+- `domain/`: entidades, tipos, reglas puras y puertos de repositorio.
+- `application/`: casos de uso que coordinan los puertos del dominio.
+- `infrastructure/`: adaptadores HTTP, DTOs del backend y datos de demostración.
+- `presentation/`: aplicación React, pantallas, formularios y estilos.
+- `core/`: composición de dependencias que conecta adaptadores con casos de uso.
+
+La presentación accede al backend mediante los casos de uso exportados por `core/container.ts`. Los contratos HTTP y la conversión de DTOs a modelos de dominio quedan dentro de infraestructura.
+
 ## Verificación
 
     npm run lint
