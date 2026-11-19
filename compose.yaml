@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: bdc_os_local
+      POSTGRES_USER: bdc_local
+      POSTGRES_PASSWORD: bdc_local_only_not_for_production
+    volumes:
+      - ./docker/postgres/00-local-roles.sql:/docker-entrypoint-initdb.d/00-local-roles.sql:ro
+      - bdc_os_pgdata:/var/lib/postgresql
+      - ../1987-bdc-os-backend/tmp/docker/bdc-os-local-bootstrap.sql:/docker-entrypoint-initdb.d/10-bdc-os-local-bootstrap.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bdc_local -d bdc_os_local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    image: 1987-bdc-os-backend:local
+    build:
+      context: ../1987-bdc-os-backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      BDC_ADMIN_EMAIL: ${BDC_ADMIN_EMAIL:-}
+      BDC_ADMIN_NAME: ${BDC_ADMIN_NAME:-}
+      BDC_ADMIN_PASSWORD_HASH: ${BDC_ADMIN_PASSWORD_HASH:-}
+      PORT: "3000"
+      DATABASE_URL: postgresql://bdc_local:bdc_local_only_not_for_production@postgres:5432/bdc_os_local
+      PGSSL: "false"
+      REDIS_URL: redis://redis:6379
+      GHL_CLIENT_ID: local-placeholder
+      GHL_CLIENT_SECRET: local-placeholder
+      GHL_APP_VERSION_ID: local-development
+      GHL_REDIRECT_URI: http://localhost:3000/oauth/return
+      GHL_SCOPES: conversations.readonly contacts.readonly
+      ENCRYPTION_SECRET: local-only-placeholder-encryption-key-32-bytes-minimum
+      OAUTH_STATE_SECRET: local-only-placeholder-oauth-state-key-32-bytes-minimum
+      QUALIFICATION_FLOW_ENABLED: "false"
+      QUALIFICATION_SIGNAL_ENABLED: "false"
+      SOFIA_ENABLED: "false"
+      CONVERSATIONAL_AI_ENABLED: "false"
+      CONVERSATIONAL_AI_SEND_ENABLED: "false"
+      MEDIA_UNDERSTANDING_ENABLED: "false"
+      INTERNAL_DIAGNOSTICS_ENABLED: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+  frontend:
+    image: 1987-bdc-os-frontend:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:4173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  bdc_os_pgdata:
