@@ -34,6 +34,12 @@ services:
       BDC_ADMIN_NAME: ${BDC_ADMIN_NAME:-}
       BDC_ADMIN_PASSWORD_HASH: ${BDC_ADMIN_PASSWORD_HASH:-}
       PORT: "3000"
+      BDC_APP_URL: http://localhost:3000
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      SMTP_FROM_EMAIL: no-reply@bdc-os.local
+      SMTP_FROM_NAME: BDC OS
       DATABASE_URL: postgresql://bdc_local:bdc_local_only_not_for_production@postgres:5432/bdc_os_local
       PGSSL: "false"
       REDIS_URL: redis://redis:6379
@@ -58,6 +64,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -75,6 +83,13 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025"
+    expose:
+      - "1025"
 
 volumes:
   bdc_os_pgdata:

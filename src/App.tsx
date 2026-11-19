@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import LoginScreen from './LoginScreen'
+import AdminDealerManager from './AdminDealerManager'
+import { mapDealerRecords, type DealerRecord } from './dealer-records'
 import './App.css'
 
-type Section = 'Inicio' | 'Bandeja' | 'Contactos' | 'Oportunidades' | 'Automatizaciones' | 'Calendario' | 'Reportes' | 'Configuración'
+type Section = 'Resumen' | 'Dealers' | 'Usuarios' | 'Actividad' | 'Inicio' | 'Bandeja' | 'Contactos' | 'Oportunidades' | 'Automatizaciones' | 'Calendario' | 'Reportes' | 'Configuración'
 type Lead = { id: number; name: string; company: string; channel: string; summary: string; time: string; status: 'Prioridad' | 'Nuevo' | 'Seguimiento'; initials: string; tone: string }
 type AuthUser = { id: string; email: string; displayName: string; accountType: 'admin' | 'user' }
+type DealerStatus = DealerRecord['status']
+type DemoDealer = DealerRecord
 type IconName = 'home' | 'inbox' | 'users' | 'pipeline' | 'automation' | 'calendar' | 'chart' | 'settings' | 'search' | 'plus' | 'arrow' | 'clock' | 'phone' | 'mail' | 'dots' | 'chevron' | 'close' | 'menu' | 'spark'
 
 const paths: Record<IconName, ReactNode> = {
@@ -21,11 +25,15 @@ const paths: Record<IconName, ReactNode> = {
 }
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg> }
 
-const nav: { name: Section; icon: IconName; group: string }[] = [
+const dealerNav: { name: Section; icon: IconName; group: string }[] = [
   { name: 'Inicio', icon: 'home', group: 'Trabajo' }, { name: 'Bandeja', icon: 'inbox', group: 'Trabajo' }, { name: 'Contactos', icon: 'users', group: 'Trabajo' },
   { name: 'Oportunidades', icon: 'pipeline', group: 'Gestión' }, { name: 'Automatizaciones', icon: 'automation', group: 'Gestión' }, { name: 'Calendario', icon: 'calendar', group: 'Gestión' }, { name: 'Reportes', icon: 'chart', group: 'Gestión' }, { name: 'Configuración', icon: 'settings', group: 'Gestión' },
 ]
-const copy: Record<Section, string> = { Inicio: 'Tu operación, en un solo lugar', Bandeja: 'Bandeja', Contactos: 'Contactos', Oportunidades: 'Oportunidades', Automatizaciones: 'Automatizaciones', Calendario: 'Calendario', Reportes: 'Reportes', Configuración: 'Configuración' }
+const adminNav: { name: Section; icon: IconName; group: string }[] = [
+  { name: 'Resumen', icon: 'home', group: 'Administración' }, { name: 'Dealers', icon: 'users', group: 'Administración' },
+  { name: 'Usuarios', icon: 'users', group: 'Plataforma' }, { name: 'Actividad', icon: 'clock', group: 'Plataforma' }, { name: 'Configuración', icon: 'settings', group: 'Plataforma' },
+]
+const copy: Record<Section, string> = { Resumen: 'Administración de dealers', Dealers: 'Directorio de dealers', Usuarios: 'Usuarios de la plataforma', Actividad: 'Actividad de la plataforma', Inicio: 'Tu operación, en un solo lugar', Bandeja: 'Bandeja', Contactos: 'Contactos', Oportunidades: 'Oportunidades', Automatizaciones: 'Automatizaciones', Calendario: 'Calendario', Reportes: 'Reportes', Configuración: 'Configuración' }
 const demo: Lead[] = [
   { id: 1, name: 'Laura Méndez', company: 'Dealer de muestra', channel: 'WhatsApp', summary: 'Pregunta por disponibilidad y opciones de financiación.', time: 'hace 4 min', status: 'Prioridad', initials: 'LM', tone: 'sand' },
   { id: 2, name: 'Andrés Rojas', company: 'Dealer de muestra', channel: 'Instagram', summary: 'Solicitó información sobre una SUV familiar.', time: 'hace 18 min', status: 'Nuevo', initials: 'AR', tone: 'lilac' },
@@ -40,10 +48,16 @@ function App() {
   const [authError, setAuthError] = useState('')
   const [active, setActive] = useState<Section>('Inicio')
   const [filter, setFilter] = useState<'Todo' | 'Prioridad' | 'Nuevos'>('Todo')
+  const [dealerStatusFilter, setDealerStatusFilter] = useState<'Todos' | DealerStatus>('Todos')
   const [search, setSearch] = useState('')
   const [leads, setLeads] = useState(demo)
+  const [dealers, setDealers] = useState<DemoDealer[]>([])
+  const [adminLoading, setAdminLoading] = useState(true)
+  const [adminError, setAdminError] = useState('')
   const [selected, setSelected] = useState<Lead | null>(null)
+  const [selectedDealer, setSelectedDealer] = useState<DemoDealer | null>(null)
   const [creating, setCreating] = useState(false)
+  const [creatingDealer, setCreatingDealer] = useState(false)
   const [mobileNav, setMobileNav] = useState(false)
   useEffect(() => {
     let mounted = true
@@ -53,18 +67,35 @@ function App() {
       return response.json() as Promise<{ authenticated: boolean; user?: AuthUser }>
     }).then((payload) => {
       if (!mounted) return
-      if (payload?.authenticated && payload.user) { setAuthUser(payload.user); setAuthStatus('signed-in') }
+      if (payload?.authenticated && payload.user) { setAuthUser(payload.user); setActive(payload.user.accountType === 'admin' ? 'Resumen' : 'Inicio'); setAuthStatus('signed-in') }
       else setAuthStatus('signed-out')
     }).catch(() => {
       if (mounted) { setAuthError('No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.'); setAuthStatus('signed-out') }
     })
     return () => { mounted = false }
   }, [])
+  useEffect(() => {
+    if (authUser?.accountType !== 'admin') return
+    let mounted = true
+    fetch('/backend/auth/admin/dealers', { credentials: 'include' }).then(async (response) => {
+      const payload = await response.json() as { dealers?: Array<{ id: string; name: string; status: string; user_count: number; pending_invitation_count: number }>; error?: string }
+      if (!response.ok || !Array.isArray(payload.dealers)) throw new Error(payload.error ?? 'No pudimos cargar los dealers.')
+      if (mounted) setDealers(mapDealerRecords(payload.dealers))
+    }).catch((cause) => {
+      if (mounted) setAdminError(cause instanceof Error ? cause.message : 'No pudimos conectar con BDC OS.')
+    }).finally(() => { if (mounted) setAdminLoading(false) })
+    return () => { mounted = false }
+  }, [authUser])
   const visible = useMemo(() => leads.filter((lead) => {
     const matchStatus = filter === 'Todo' || (filter === 'Prioridad' ? lead.status === 'Prioridad' : lead.status === 'Nuevo')
     const query = search.trim().toLocaleLowerCase('es')
     return matchStatus && (!query || `${lead.name} ${lead.channel} ${lead.summary}`.toLocaleLowerCase('es').includes(query))
   }), [filter, leads, search])
+  const visibleDealers = useMemo(() => dealers.filter((dealer) => {
+    const query = search.trim().toLocaleLowerCase('es')
+    const matchesStatus = dealerStatusFilter === 'Todos' || dealer.status === dealerStatusFilter
+    return matchesStatus && (!query || `${dealer.name} ${dealer.location}`.toLocaleLowerCase('es').includes(query))
+  }), [dealers, dealerStatusFilter, search])
   async function signIn(email: string, password: string) {
     setAuthError('')
     try {
@@ -72,6 +103,7 @@ function App() {
       const payload = await response.json() as { error?: string; user?: AuthUser }
       if (!response.ok || !payload.user) { setAuthError(payload.error ?? 'No pudimos iniciar sesión.'); return }
       setAuthUser(payload.user)
+      setActive(payload.user.accountType === 'admin' ? 'Resumen' : 'Inicio')
       setAuthStatus('signed-in')
     } catch {
       setAuthError('No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.')
@@ -85,6 +117,8 @@ function App() {
   }
   if (authStatus === 'checking') return <main className="auth-loading" aria-live="polite"><img className="auth-logo" src="/bdc-os-crm.png" alt="BDC OS CRM" /><span>Verificando tu acceso…</span></main>
   if (authStatus !== 'signed-in' || !authUser) return <LoginScreen error={authError} onSubmit={signIn} />
+  const isAdmin = authUser.accountType === 'admin'
+  const nav = isAdmin ? adminNav : dealerNav
   const userInitials = authUser.displayName.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'BD'
   function addLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget); const name = String(data.get('name') ?? '').trim(); if (!name) return
@@ -95,14 +129,14 @@ function App() {
     {mobileNav && <button className="scrim" aria-label="Cerrar navegación" onClick={() => setMobileNav(false)} />}
     <aside className={`sidebar ${mobileNav ? 'sidebar--open' : ''}`}>
       <a href="#inicio" className="brand" onClick={(e) => { e.preventDefault(); setActive('Inicio'); setMobileNav(false) }} aria-label="BDC OS CRM inicio"><img src="/bdc-os-crm.png" alt="BDC OS CRM" /></a>
-      <div className="workspace"><span className="workspace-mark">19</span><span><strong>1987 Marketing</strong><small>Espacio de trabajo</small></span><Icon name="chevron" size={15} /></div>
-      <nav aria-label="Navegación principal">{['Trabajo', 'Gestión'].map((group) => <div className="nav-group" key={group}><p>{group}</p>{nav.filter((item) => item.group === group).map((item) => <button key={item.name} className={`nav-item ${active === item.name ? 'is-active' : ''}`} aria-current={active === item.name ? 'page' : undefined} onClick={() => { setActive(item.name); setMobileNav(false) }}><Icon name={item.icon} /><span>{item.name}</span>{item.name === 'Bandeja' && <b>8</b>}</button>)}</div>)}</nav>
-      <div className="sidebar-bottom"><div className="team-line"><span className="team-faces"><i>{userInitials}</i><i>+</i></span><span><strong>Equipo comercial</strong><small>Espacio local</small></span><Icon name="dots" size={16} /></div><button className="profile" onClick={() => void signOut()} aria-label="Cerrar sesión"><i>{userInitials}</i><span><strong>{authUser.displayName}</strong><small>{authUser.accountType === 'admin' ? 'Admin BDC OS' : 'Usuario'}</small></span><span className="logout-label">Salir</span></button></div>
+      <div className="workspace"><span className="workspace-mark">19</span><span><strong>{isAdmin ? 'BDC OS' : '1987 Marketing'}</strong><small>{isAdmin ? 'Administración global' : 'Espacio de trabajo'}</small></span><Icon name="chevron" size={15} /></div>
+      <nav aria-label="Navegación principal">{[...new Set(nav.map((item) => item.group))].map((group) => <div className="nav-group" key={group}><p>{group}</p>{nav.filter((item) => item.group === group).map((item) => <button key={item.name} className={`nav-item ${active === item.name ? 'is-active' : ''}`} aria-current={active === item.name ? 'page' : undefined} onClick={() => { setActive(item.name); setMobileNav(false) }}><Icon name={item.icon} /><span>{item.name}</span>{item.name === 'Bandeja' && <b>8</b>}</button>)}</div>)}</nav>
+      <div className="sidebar-bottom"><div className="team-line"><span className="team-faces"><i>{userInitials}</i><i>+</i></span><span><strong>{isAdmin ? 'Operación BDC OS' : 'Equipo comercial'}</strong><small>{isAdmin ? 'Todos los dealers' : 'Espacio local'}</small></span><Icon name="dots" size={16} /></div><button className="profile" onClick={() => void signOut()} aria-label="Cerrar sesión"><i>{userInitials}</i><span><strong>{authUser.displayName}</strong><small>{isAdmin ? 'Administrador global' : 'Usuario de dealer'}</small></span><span className="logout-label">Salir</span></button></div>
     </aside>
     <div className="main-column">
-      <header className="topbar"><button className="mobile-menu" aria-label="Abrir navegación" onClick={() => setMobileNav(true)}><Icon name="menu" /></button><div className="breadcrumb"><span>Espacio de trabajo</span><i>/</i><strong>{active}</strong></div><label className="search"><Icon name="search" size={16} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar contactos" aria-label="Buscar en el CRM" /><kbd>⌘ K</kbd></label><span className="demo-tag"><i /> Entorno de prueba</span><button className="top-avatar" aria-label={`Perfil de ${authUser.displayName}`} onClick={() => setActive('Configuración')}>{userInitials}</button></header>
+      <header className="topbar"><button className="mobile-menu" aria-label="Abrir navegación" onClick={() => setMobileNav(true)}><Icon name="menu" /></button><div className="breadcrumb"><span>{isAdmin ? 'Administración' : 'Espacio de trabajo'}</span><i>/</i><strong>{active}</strong></div><label className="search"><Icon name="search" size={16} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={isAdmin ? 'Buscar dealers' : 'Buscar contactos'} aria-label={isAdmin ? 'Buscar dealers' : 'Buscar en el CRM'} /><kbd>⌘ K</kbd></label><span className="demo-tag"><i /> {isAdmin ? 'Vista de muestra' : 'Entorno de prueba'}</span><button className="top-avatar" aria-label={`Perfil de ${authUser.displayName}`} onClick={() => setActive('Configuración')}>{userInitials}</button></header>
       <main className="content">
-        {active === 'Inicio' ? <>
+        {isAdmin ? (active === 'Resumen' ? <AdminOverview dealers={dealers} loading={adminLoading} error={adminError} onCreateDealer={() => setCreatingDealer(true)} onViewAll={() => { setSearch(''); setDealerStatusFilter('Todos'); setActive('Dealers') }} onSelectDealer={setSelectedDealer} /> : active === 'Dealers' ? <DealerDirectory dealers={visibleDealers} total={dealers.length} loading={adminLoading} error={adminError} status={dealerStatusFilter} onStatusChange={setDealerStatusFilter} onCreateDealer={() => setCreatingDealer(true)} onSelectDealer={setSelectedDealer} /> : <section className="module-preview"><span className="preview-icon"><Icon name={nav.find((item) => item.name === active)?.icon ?? 'home'} size={21} /></span><p className="eyebrow">ADMINISTRACIÓN BDC OS</p><h1>{copy[active]}</h1><p>Esta vista se habilitará al conectar los servicios de administración del backend.</p><div><small>Alcance</small><strong>{active === 'Usuarios' ? 'Cuentas y accesos asociados a cada dealer.' : active === 'Actividad' ? 'Cambios y acciones realizados en la plataforma.' : 'Preferencias generales y controles globales.'}</strong><span>Los datos de esta sección aún no están conectados.</span></div><button className="secondary" onClick={() => setActive('Resumen')}>Volver al resumen</button></section>) : active === 'Inicio' ? <>
           <div className="page-heading"><div><p className="eyebrow">MIÉRCOLES, 19 DE NOVIEMBRE</p><h1>{copy[active]}</h1><p className="subtitle">Una vista clara para saber qué necesita atención y cuál es el siguiente paso.</p></div><button className="primary" onClick={() => setCreating(true)}><Icon name="plus" size={16} /> Nueva oportunidad</button></div>
           <section className="metrics" aria-label="Indicadores de demostración">
             <article className="metric metric-feature"><div className="metric-top"><span className="metric-icon dark"><Icon name="inbox" size={16} /></span><span>requieren seguimiento</span><b>DEMO</b></div><div className="metric-number"><strong>08</strong><span>Conversaciones pendientes</span></div><div className="metric-foot"><span className="bars">▂ ▄ ▆ ▃ ▇ ▅ ▆ ▄ ▇</span>2 con prioridad alta</div></article>
@@ -122,7 +156,64 @@ function App() {
     </div>
     {creating && <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setCreating(false) }}><section className="dialog" role="dialog" aria-modal="true" aria-labelledby="create-title"><header><span className="dialog-icon"><Icon name="plus" size={16} /></span><button className="icon-button" aria-label="Cerrar" onClick={() => setCreating(false)}><Icon name="close" /></button></header><h2 id="create-title">Nueva oportunidad</h2><p>Registro temporal para probar la interfaz.</p><form onSubmit={addLead}><label>Nombre del contacto<input autoFocus name="name" required placeholder="Ej. Andrea Gómez" /></label><label>Canal de origen<select name="channel"><option>WhatsApp</option><option>Instagram</option><option>Facebook</option><option>Formulario web</option></select></label><small>El registro solo vive en esta sesión y desaparece al recargar.</small><div className="dialog-actions"><button type="button" className="secondary" onClick={() => setCreating(false)}>Cancelar</button><button className="primary">Crear en demo</button></div></form></section></div>}
     {selected && <div className="overlay drawer-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="contact-title"><div className="drawer-top"><span className="eyebrow">CONTACTO DE DEMOSTRACIÓN</span><button className="icon-button" aria-label="Cerrar detalle" onClick={() => setSelected(null)}><Icon name="close" /></button></div><span className={`drawer-avatar ${selected.tone}`}>{selected.initials}</span><h2 id="contact-title">{selected.name}</h2><p>{selected.company}</p><em className={`status status-${selected.status.toLowerCase()}`}><i />{selected.status === 'Prioridad' ? 'Atención prioritaria' : selected.status === 'Nuevo' ? 'Nuevo contacto' : 'Seguimiento'}</em><div className="drawer-actions"><button className="secondary"><Icon name="phone" size={15} /> Llamar</button><button className="primary"><Icon name="mail" size={15} /> Responder</button></div><hr /><span className="eyebrow">ÚLTIMA ACTIVIDAD</span><p className="drawer-summary">{selected.summary}</p><small>{selected.channel} · {selected.time}</small><div className="drawer-note">Los controles de contacto son de muestra y aún no envían mensajes.</div></aside></div>}
+    {isAdmin && creatingDealer && <AdminDealerManager onClose={() => setCreatingDealer(false)} onCreated={(dealer) => setDealers((items) => [dealer, ...items])} />}
+    {isAdmin && selectedDealer && <DealerDetails dealer={selectedDealer} onClose={() => setSelectedDealer(null)} />}
   </div>
 }
+
+function AdminOverview({ dealers, loading, error, onCreateDealer, onViewAll, onSelectDealer }: { dealers: DemoDealer[]; loading: boolean; error: string; onCreateDealer: () => void; onViewAll: () => void; onSelectDealer: (dealer: DemoDealer) => void }) {
+  const activeCount = dealers.filter((dealer) => dealer.status === 'Activo').length
+  const onboardingCount = dealers.filter((dealer) => dealer.status === 'En incorporación').length
+  const userCount = dealers.reduce((total, dealer) => total + dealer.users, 0)
+  const needsAttention = dealers.find((dealer) => dealer.status === 'En incorporación')
+
+  return <section className="admin-view" aria-label="Resumen de administración">
+    <div className="page-heading admin-page-heading"><div><p className="eyebrow">PANEL DEL ADMINISTRADOR GLOBAL</p><h1>Administración de dealers</h1><p className="subtitle">Gestiona las cuentas, los accesos y el estado de cada empresa.</p></div><button className="primary" onClick={onCreateDealer}>+ Crear dealer</button></div>
+    <div className="admin-stat-grid" aria-label="Indicadores globales de muestra">
+      <AdminStat icon="users" label="Dealers registrados" value={String(dealers.length).padStart(2, '0')} note="En la plataforma" />
+      <AdminStat icon="home" label="Dealers activos" value={String(activeCount).padStart(2, '0')} note="Con acceso habilitado" />
+      <AdminStat icon="clock" label="En incorporación" value={String(onboardingCount).padStart(2, '0')} note="Pendientes de completar" />
+      <AdminStat icon="users" label="Usuarios de dealer" value={String(userCount).padStart(2, '0')} note="Asociados a sus empresas" />
+    </div>
+    <div className="admin-grid">
+      <section className="panel admin-directory-preview" aria-labelledby="admin-directory-title">
+        <div className="panel-heading"><div><div className="title-count"><h2 id="admin-directory-title">Directorio de dealers</h2><b>{dealers.length}</b></div><p>Estado de las cuentas y sus equipos</p></div><button className="link-button" onClick={onViewAll}>Ver directorio <Icon name="arrow" size={14} /></button></div>
+        <DealerTable dealers={dealers.slice(0, 4)} onSelectDealer={onSelectDealer} />
+      </section>
+      <aside className="admin-side-column">
+        <section className="panel admin-attention">
+          <div className="panel-heading compact"><div><h2>Seguimiento de incorporación</h2><p>Dealer que requiere completar su acceso</p></div><span className="admin-attention-count">{onboardingCount}</span></div>
+          {needsAttention ? <button className="admin-attention-item" onClick={() => onSelectDealer(needsAttention)}><span className="dealer-avatar">{needsAttention.initials}</span><span><strong>{needsAttention.name}</strong><small>Invitación pendiente</small></span><Icon name="arrow" size={15} /></button> : <p className="admin-clear-state">No hay incorporaciones pendientes.</p>}
+        </section>
+        <section className="panel admin-scope"><span className="admin-scope-mark"><Icon name="settings" size={17} /></span><h2>Control de la plataforma</h2><p>Desde esta cuenta puedes revisar cada dealer y su acceso. La atención de contactos y los pipelines aparecen en el espacio de cada dealer.</p><span>Los datos de este panel son de demostración.</span></section>
+      </aside>
+    </div>
+    {loading && <p className="admin-data-state" role="status">Cargando dealers…</p>}
+    {error && <p className="admin-form-error admin-load-error" role="alert">{error}</p>}
+  </section>
+}
+
+function AdminStat({ icon, label, value, note }: { icon: IconName; label: string; value: string; note: string }) {
+  return <article className="admin-stat"><div className="admin-stat-top"><span className="metric-icon"><Icon name={icon} size={16} /></span><span>{label}</span></div><strong>{value}</strong><small>{note}</small></article>
+}
+
+function DealerDirectory({ dealers, total, loading, error, status, onStatusChange, onCreateDealer, onSelectDealer }: { dealers: DemoDealer[]; total: number; loading: boolean; error: string; status: 'Todos' | DealerStatus; onStatusChange: (status: 'Todos' | DealerStatus) => void; onCreateDealer: () => void; onSelectDealer: (dealer: DemoDealer) => void }) {
+  return <section className="admin-view" aria-label="Directorio de dealers">
+    <div className="page-heading admin-page-heading"><div><p className="eyebrow">ADMINISTRACIÓN GLOBAL</p><h1>Directorio de dealers</h1><p className="subtitle">Consulta la cuenta, el equipo y el estado de cada empresa.</p></div><button className="primary" onClick={onCreateDealer}>+ Crear dealer</button></div>
+    <section className="panel admin-directory-panel"><div className="admin-directory-toolbar"><div><h2>Dealers</h2><p>{dealers.length} de {total} cuentas</p></div><div className="filters admin-status-filters" role="group" aria-label="Filtrar dealers por estado">{(['Todos', 'Activo', 'En incorporación', 'Suspendido'] as const).map((item) => <button key={item} className={status === item ? 'selected' : ''} aria-pressed={status === item} onClick={() => onStatusChange(item)}>{item}</button>)}</div></div><DealerTable dealers={dealers} onSelectDealer={onSelectDealer} /></section>
+    {loading && <p className="admin-data-state" role="status">Cargando dealers…</p>}
+    {error && <p className="admin-form-error admin-load-error" role="alert">{error}</p>}
+  </section>
+}
+
+function DealerTable({ dealers, onSelectDealer }: { dealers: DemoDealer[]; onSelectDealer: (dealer: DemoDealer) => void }) {
+  return <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th scope="col">Dealer</th><th scope="col">Estado</th><th scope="col">Usuarios</th><th scope="col">Actividad</th><th scope="col"><span className="sr-only">Acciones</span></th></tr></thead><tbody>{dealers.map((dealer) => <tr key={dealer.id}><td><div className="dealer-cell"><span className="dealer-avatar">{dealer.initials}</span><span><strong>{dealer.name}</strong><small>{dealer.location}</small></span></div></td><td><span className={`dealer-status dealer-status-${dealer.status === 'Activo' ? 'active' : dealer.status === 'Suspendido' ? 'suspended' : 'onboarding'}`}><i />{dealer.status}</span></td><td><strong className="dealer-user-count">{dealer.users}</strong><small className="dealer-user-caption">{dealer.users === 1 ? 'usuario' : 'usuarios'}</small></td><td className="dealer-updated">{dealer.updated}</td><td><button className="link-button dealer-view-button" aria-label={`Ver dealer ${dealer.name}`} onClick={() => onSelectDealer(dealer)}>Ver <Icon name="arrow" size={14} /></button></td></tr>)}</tbody></table>{dealers.length === 0 && <div className="empty admin-empty"><Icon name="search" size={18} /><strong>No hay dealers con esos filtros</strong><span>Cambia el estado o la búsqueda.</span></div>}</div>
+}
+
+function DealerDetails({ dealer, onClose }: { dealer: DemoDealer; onClose: () => void }) {
+  const statusClass = dealer.status === 'Activo' ? 'active' : dealer.status === 'Suspendido' ? 'suspended' : 'onboarding'
+  return <div className="overlay drawer-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><aside className="drawer admin-dealer-drawer" role="dialog" aria-modal="true" aria-labelledby="dealer-detail-title"><div className="drawer-top"><span className="eyebrow">FICHA DEL DEALER · MUESTRA</span><button className="icon-button" aria-label="Cerrar detalle del dealer" onClick={onClose}><Icon name="close" /></button></div><span className="dealer-detail-avatar">{dealer.initials}</span><h2 id="dealer-detail-title">{dealer.name}</h2><p>{dealer.location}</p><span className={`dealer-status dealer-status-${statusClass}`}><i />{dealer.status}</span><div className="dealer-detail-facts"><div><small>Usuarios</small><strong>{dealer.users}</strong></div><div><small>Estado de cuenta</small><strong>{dealer.status}</strong></div><div><small>Última actividad</small><strong>{dealer.updated}</strong></div></div><div className="dealer-detail-note">La administración de accesos y cambios de estado se habilitará al conectar los endpoints del backend.</div><button className="secondary dealer-detail-close" onClick={onClose}>Cerrar ficha</button></aside></div>
+}
+
 function Activity({ icon, title, text, time }: { icon: IconName; title: string; text: string; time: string }) { return <div className="activity-item"><span><Icon name={icon} size={14} /></span><p><strong>{title}</strong><small>{text}</small><small>{time}</small></p></div> }
 export default App
