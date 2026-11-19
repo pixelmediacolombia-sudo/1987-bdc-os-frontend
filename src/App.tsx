@@ -83,7 +83,7 @@ function App() {
     setAuthStatus('signed-out')
     setActive('Inicio')
   }
-  if (authStatus === 'checking') return <main className="auth-loading" aria-live="polite"><span className="brand"><span>BDC</span><i>OS</i><small>CRM</small></span><span>Verificando sesión local…</span></main>
+  if (authStatus === 'checking') return <main className="auth-loading" aria-live="polite"><img className="auth-logo" src="/bdc-os-crm.png" alt="BDC OS CRM" /><span>Verificando tu acceso…</span></main>
   if (authStatus !== 'signed-in' || !authUser) return <LoginScreen error={authError} onSubmit={signIn} />
   const userInitials = authUser.displayName.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'BD'
   function addLead(event: FormEvent<HTMLFormElement>) {
@@ -94,7 +94,7 @@ function App() {
   return <div className="app-shell">
     {mobileNav && <button className="scrim" aria-label="Cerrar navegación" onClick={() => setMobileNav(false)} />}
     <aside className={`sidebar ${mobileNav ? 'sidebar--open' : ''}`}>
-      <a href="#inicio" className="brand" onClick={(e) => { e.preventDefault(); setActive('Inicio'); setMobileNav(false) }} aria-label="BDC OS CRM inicio"><span>BDC</span><i>OS</i><small>CRM</small></a>
+      <a href="#inicio" className="brand" onClick={(e) => { e.preventDefault(); setActive('Inicio'); setMobileNav(false) }} aria-label="BDC OS CRM inicio"><img src="/bdc-os-crm.png" alt="BDC OS CRM" /></a>
       <div className="workspace"><span className="workspace-mark">19</span><span><strong>1987 Marketing</strong><small>Espacio de trabajo</small></span><Icon name="chevron" size={15} /></div>
       <nav aria-label="Navegación principal">{['Trabajo', 'Gestión'].map((group) => <div className="nav-group" key={group}><p>{group}</p>{nav.filter((item) => item.group === group).map((item) => <button key={item.name} className={`nav-item ${active === item.name ? 'is-active' : ''}`} aria-current={active === item.name ? 'page' : undefined} onClick={() => { setActive(item.name); setMobileNav(false) }}><Icon name={item.icon} /><span>{item.name}</span>{item.name === 'Bandeja' && <b>8</b>}</button>)}</div>)}</nav>
       <div className="sidebar-bottom"><div className="team-line"><span className="team-faces"><i>{userInitials}</i><i>+</i></span><span><strong>Equipo comercial</strong><small>Espacio local</small></span><Icon name="dots" size={16} /></div><button className="profile" onClick={() => void signOut()} aria-label="Cerrar sesión"><i>{userInitials}</i><span><strong>{authUser.displayName}</strong><small>{authUser.accountType === 'admin' ? 'Admin BDC OS' : 'Usuario'}</small></span><span className="logout-label">Salir</span></button></div>

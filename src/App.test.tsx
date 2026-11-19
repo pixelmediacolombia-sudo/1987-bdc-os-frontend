@@ -79,7 +79,7 @@ describe('BDC OS CRM first screen', () => {
   it('shows the login screen when there is no active session', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ authenticated: false }, 401)))
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Tu operación comercial empieza aquí' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Inicia sesión' })).toBeTruthy()
     expect(screen.getByLabelText('Correo electrónico')).toBeTruthy()
     expect(screen.getByLabelText('Contraseña')).toBeTruthy()
   })

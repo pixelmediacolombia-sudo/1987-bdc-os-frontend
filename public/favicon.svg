@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#171717"/>
-  <circle cx="32" cy="32" r="21" fill="none" stroke="#fff" stroke-width="2.5"/>
-  <circle cx="32" cy="32" r="15" fill="none" stroke="#fff" stroke-width="1.5" opacity=".65"/>
-  <text x="32" y="36" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="-1">OS</text>
+  <circle cx="32" cy="32" r="22" fill="#fff"/>
+  <circle cx="32" cy="32" r="18" fill="none" stroke="#171717" stroke-width="1.8"/>
+  <path d="M20 32a12 12 0 0 1 12-12M44 32a12 12 0 0 1-12 12" fill="none" stroke="#171717" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="2.6" fill="#171717"/>
 </svg>

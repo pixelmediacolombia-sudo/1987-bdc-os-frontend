@@ -7,7 +7,7 @@ if (!password) throw new Error('Define BDC_E2E_ADMIN_PASSWORD con la contraseña
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('heading', { name: 'Tu operación comercial empieza aquí' }).waitFor()
+  await page.getByRole('heading', { name: 'Inicia sesión' }).waitFor()
   await page.getByLabel('Correo electrónico').fill(email)
   await page.getByLabel('Contraseña').fill(password)
   await page.getByRole('button', { name: 'Entrar' }).click()
@@ -37,5 +37,5 @@ test('opens a sample contact, navigates, and logs out', async ({ page }) => {
   await page.getByRole('button', { name: 'Automatizaciones' }).click()
   await expect(page.getByRole('heading', { name: 'Automatizaciones' })).toBeVisible()
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
-  await expect(page.getByRole('heading', { name: 'Tu operación comercial empieza aquí' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible()
 })
