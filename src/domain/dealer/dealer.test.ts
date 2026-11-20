@@ -16,6 +16,12 @@ describe('dealer domain rules', () => {
     expect(dealerFromSnapshot({ id: 'd5', name: 'Otro estado', status: 'unknown', userCount: 0, pendingInvitationCount: 0 }).status).toBe('Inactivo')
   })
 
+  it('keeps the directory usable when a legacy dealer has no name', () => {
+    expect(dealerFromSnapshot({ id: 'legacy-1', name: null, status: 'active', userCount: 0, pendingInvitationCount: 0 })).toMatchObject({
+      name: 'Dealer sin nombre', initials: 'DS', status: 'Activo',
+    })
+  })
+
   it('filters dealers by status and a case-insensitive query', () => {
     const dealers = [
       dealerFromSnapshot({ id: 'd1', name: 'Grupo Andino', status: 'active', userCount: 2, pendingInvitationCount: 0 }),

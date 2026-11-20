@@ -1,5 +1,5 @@
 export type DealerConfiguration = {
-  dealer: { id: string; name: string | null; status: string; timezone: string | null; ghlLocationId: string | null }
+  dealer: { id: string; name: string | null; status: string; timezone: string | null }
   policy: { version: string | null; financialPolicyKeys: string[] }
   flags: {
     sofiaEnabled: boolean
@@ -11,17 +11,6 @@ export type DealerConfiguration = {
     facebookPageConfigured: boolean
   }
   integrations: {
-    ghl: {
-      status: 'connected' | 'degraded' | 'revoked' | 'not_connected'
-      locationId: string | null
-      scopes: string[]
-      hasStoredAccessToken: boolean
-      hasStoredRefreshToken: boolean
-      tokenExpiresAt: string | null
-      connectedAt: string | null
-      updatedAt: string | null
-      lastVerifiedAt: string | null
-    }
     metaCapi: {
       enabled: boolean
       status: 'disabled' | 'incomplete' | 'configured'

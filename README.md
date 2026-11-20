@@ -18,9 +18,9 @@ El stack Compose levanta frontend, backend, PostgreSQL 18 y Redis 7. La base y R
 
 3. Abre <http://localhost:4173>. API: <http://localhost:3000/health>.
 
-La imagen del backend se construye desde el repositorio hermano `../1987-bdc-os-backend`. La rama `codex/identity-user-foundation` del backend contiene identidad, login y alta de dealers por invitación; úsala para reconstruir el stack hasta que los cambios se integren a la rama principal. El arranque local aplica el esquema y, solo con `NODE_ENV=development`, crea el único admin a partir del hash del `.env`. El login usa una cookie HttpOnly y sesiones revocables.
+La imagen del backend se construye desde el repositorio hermano `../1987-bdc-os-backend`. El arranque local aplica el esquema y, solo con `NODE_ENV=development`, crea el único admin a partir del hash del `.env`. El login usa una cookie HttpOnly y sesiones revocables.
 
-El Compose local usa credenciales GHL de marcador porque la versión actual del backend aún exige configuración de GHL. No carga `.env` de producción ni envía mensajes a GHL. En producción se migrará cada flujo según los requerimientos y con pruebas de paridad antes de retirar sus variables. Meta CAPI continúa como conexión directa del backend y sus variables deben conservarse.
+BDC OS administra los dealers, contactos, conversaciones, mensajes y calificación de leads. Facebook Messenger, Instagram y WhatsApp se conectan mediante la API de Meta; Meta CAPI conserva su configuración independiente por dealer. Para pruebas locales, los endpoints de Meta pueden apuntarse a simuladores HTTP y el stack Compose no usa credenciales de producción.
 
 ## Identidad de usuarios y empresas
 
@@ -53,4 +53,4 @@ Las pruebas e2e requieren que `docker compose up -d` esté activo y Chromium de 
 
 ## Plan de trabajo inicial
 
-Ver [`docs/plan-desarrollo.md`](docs/plan-desarrollo.md) para las etapas del frontend y la migración progresiva desde GHL.
+Ver [`docs/plan-desarrollo.md`](docs/plan-desarrollo.md) para las etapas del frontend.

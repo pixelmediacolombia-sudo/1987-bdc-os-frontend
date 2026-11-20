@@ -46,9 +46,12 @@ async function createDealer(page: Page, dealerName: string, email: string) {
 async function openDealer(page: Page, dealerName: string) {
   await page.getByRole('button', { name: 'Dealers', exact: true }).click()
   await expect(page.getByText(dealerName, { exact: true })).toBeVisible()
+  const responsePromise = page.waitForResponse((item) => item.url().includes('/configuration') && item.request().method() === 'GET')
   await page.getByRole('button', { name: `Ver dealer ${dealerName}` }).click()
   await expect(page.getByRole('heading', { name: 'Configuración e integraciones' })).toBeVisible()
   await expect(page.getByText('Consulta de solo lectura')).toBeVisible()
+  const response = await responsePromise
+  return response.json() as Promise<unknown>
 }
 
 test('global admin reviews safe dealer configuration with and without simulated credentials', async ({ page }) => {
@@ -62,19 +65,17 @@ test('global admin reviews safe dealer configuration with and without simulated 
   const stamp = Date.now()
   const configuredName = `ADM05 QA Simulado ${stamp}`
   const configuredId = await createDealer(page, configuredName, `adm05-config-${stamp}@example.test`)
-  const simulatedAccess = `SIMULATED_ENCRYPTED_GHL_ACCESS_${stamp}`
-  const simulatedRefresh = `SIMULATED_ENCRYPTED_GHL_REFRESH_${stamp}`
   const simulatedMeta = `SIMULATED_ENCRYPTED_META_${stamp}`
-  const seed = `BEGIN; SELECT set_config('app.tenant_id','${configuredId}',true); UPDATE public.tenants SET meta_capi_enabled=true, meta_dataset_id='SIMULATED_DATASET_${stamp}', encrypted_meta_access_token='${simulatedMeta}', meta_test_event_code='SIMULATED_EVENT_CODE_${stamp}' WHERE dealer_id='${configuredId}'; INSERT INTO public.integrations (tenant_id,provider,ghl_location_id,encrypted_access_token,encrypted_refresh_token,scopes,access_token_expires_at,health_state,last_verified_at) VALUES ('${configuredId}','ghl','SIMULATED_LOCATION_${stamp}','${simulatedAccess}','${simulatedRefresh}',ARRAY['contacts.readonly','conversations.readonly'],now() + interval '1 day','healthy',now()); COMMIT;`
+  const seed = `UPDATE public.tenants SET meta_capi_enabled=true, meta_dataset_id='SIMULATED_DATASET_${stamp}', encrypted_meta_access_token='${simulatedMeta}', meta_test_event_code='SIMULATED_EVENT_CODE_${stamp}' WHERE dealer_id='${configuredId}'`
   psql(seed)
-  await openDealer(page, configuredName)
-  await expect(page.getByText('Conectado', { exact: true })).toBeVisible()
-  await expect(page.getByText('Guardado · valor oculto')).toBeVisible()
+  const configuredResponse = await openDealer(page, configuredName) as Record<string, unknown>
+  expect(JSON.stringify(configuredResponse)).not.toMatch(/ghl/i)
+  await expect(page.getByText('Meta CAPI · Facebook')).toBeVisible()
   await expect(page.getByText('SIMULATED_DATASET_' + stamp)).toBeVisible()
   await expect(page.getByText('Configurado', { exact: true })).toBeVisible()
-  await expect(page.getByText(/Última verificación/)).toBeVisible()
+  await expect(page.getByText('GoHighLevel')).toHaveCount(0)
   const visibleText = await page.getByRole('dialog').innerText()
-  for (const secret of [simulatedAccess, simulatedRefresh, simulatedMeta, `SIMULATED_EVENT_CODE_${stamp}`]) expect(visibleText).not.toContain(secret)
+  for (const secret of [simulatedMeta, `SIMULATED_EVENT_CODE_${stamp}`]) expect(visibleText).not.toContain(secret)
   mkdirSync('output/evidence', { recursive: true })
   await page.screenshot({ path: 'output/evidence/adm-05-configuracion-con-credenciales-simuladas.png', fullPage: true })
   const configuredDrawer = page.getByRole('dialog')
@@ -84,11 +85,12 @@ test('global admin reviews safe dealer configuration with and without simulated 
 
   const emptyName = `ADM05 QA Sin credenciales ${stamp}`
   await createDealer(page, emptyName, `adm05-empty-${stamp}@example.test`)
-  await openDealer(page, emptyName)
-  await expect(page.getByText('Sin conectar', { exact: true })).toBeVisible()
-  await expect(page.getByText('Sin credencial', { exact: true })).toBeVisible()
+  const emptyResponse = await openDealer(page, emptyName) as Record<string, unknown>
+  expect(JSON.stringify(emptyResponse)).not.toMatch(/ghl/i)
+  await expect(page.getByText('Meta CAPI · Facebook')).toBeVisible()
   await expect(page.getByText('Desactivado', { exact: true })).toBeVisible()
   await expect(page.getByText('Sin configurar', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('GoHighLevel')).toHaveCount(0)
   await expect(page.getByText('Las credenciales y códigos secretos nunca se muestran.')).toBeVisible()
   await page.screenshot({ path: 'output/evidence/adm-05-configuracion-sin-credenciales.png', fullPage: true })
   const emptyDrawer = page.getByRole('dialog')

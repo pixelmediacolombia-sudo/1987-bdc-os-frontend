@@ -43,11 +43,9 @@ services:
       DATABASE_URL: postgresql://bdc_local:bdc_local_only_not_for_production@postgres:5432/bdc_os_local
       PGSSL: "false"
       REDIS_URL: redis://redis:6379
-      GHL_CLIENT_ID: local-placeholder
-      GHL_CLIENT_SECRET: local-placeholder
-      GHL_APP_VERSION_ID: local-development
-      GHL_REDIRECT_URI: http://localhost:3000/oauth/return
-      GHL_SCOPES: conversations.readonly contacts.readonly
+      META_APP_SECRET: local-meta-app-secret-for-tests-only
+      META_WEBHOOK_VERIFY_TOKEN: local-meta-webhook-verify-token
+      META_GRAPH_API_VERSION: v27.0
       ENCRYPTION_SECRET: local-only-placeholder-encryption-key-32-bytes-minimum
       OAUTH_STATE_SECRET: local-only-placeholder-oauth-state-key-32-bytes-minimum
       QUALIFICATION_FLOW_ENABLED: "false"

@@ -11,7 +11,7 @@ export type Dealer = {
 
 export type DealerSnapshot = {
   id: string
-  name: string
+  name: string | null
   status: string
   userCount: number
   pendingInvitationCount: number
@@ -23,6 +23,7 @@ export type DealerFilters = {
 }
 
 export function dealerFromSnapshot(snapshot: DealerSnapshot): Dealer {
+  const name = snapshot.name?.trim() || 'Dealer sin nombre'
   const backendStatus = snapshot.status.trim().toLocaleLowerCase('en')
   const status: DealerStatus = backendStatus === 'disabled' || backendStatus === 'suspended' || backendStatus === 'inactive'
     ? 'Inactivo'
@@ -34,11 +35,11 @@ export function dealerFromSnapshot(snapshot: DealerSnapshot): Dealer {
 
   return {
     id: snapshot.id,
-    name: snapshot.name,
+    name,
     users: Number(snapshot.userCount),
     pendingInvitations: Number(snapshot.pendingInvitationCount),
     status,
-    initials: snapshot.name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'BD',
+    initials: name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'BD',
   }
 }
 

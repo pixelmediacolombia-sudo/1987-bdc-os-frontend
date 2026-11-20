@@ -3,7 +3,7 @@ import { HttpClient } from '../http/http-client'
 
 type DealerResponse = {
   id: string
-  name: string
+  name: string | null
   status: string
   user_count: number
   pending_invitation_count: number
