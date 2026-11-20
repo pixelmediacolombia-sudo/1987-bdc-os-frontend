@@ -1,4 +1,4 @@
-export type DealerStatus = 'Activo' | 'En incorporación' | 'Suspendido' | 'Revisión requerida'
+export type DealerStatus = 'Pendiente' | 'Activo' | 'Inactivo'
 
 export type Dealer = {
   id: string
@@ -24,13 +24,13 @@ export type DealerFilters = {
 
 export function dealerFromSnapshot(snapshot: DealerSnapshot): Dealer {
   const backendStatus = snapshot.status.trim().toLocaleLowerCase('en')
-  const status: DealerStatus = backendStatus === 'disabled' || backendStatus === 'suspended'
-    ? 'Suspendido'
+  const status: DealerStatus = backendStatus === 'disabled' || backendStatus === 'suspended' || backendStatus === 'inactive'
+    ? 'Inactivo'
     : backendStatus === 'onboarding' || backendStatus === 'invited' || (snapshot.userCount === 0 && snapshot.pendingInvitationCount > 0)
-      ? 'En incorporación'
+      ? 'Pendiente'
       : backendStatus === 'active'
         ? 'Activo'
-        : 'Revisión requerida'
+        : 'Inactivo'
 
   return {
     id: snapshot.id,
@@ -55,6 +55,7 @@ export interface DealerRepository {
   list(): Promise<Dealer[]>
   createWithInvitation(input: CreateDealerInput): Promise<CreatedDealer>
   inviteMember(input: InviteDealerMemberInput): Promise<DealerInvitation>
+  delete(dealerId: string): Promise<void>
 }
 
 export type CreateDealerInput = {

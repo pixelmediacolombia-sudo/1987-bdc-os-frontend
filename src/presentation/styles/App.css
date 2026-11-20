@@ -61,6 +61,15 @@
 .dealer-status-suspended i{background:#b87059}
 .dealer-status-review{border-color:#eadfe8;background:#faf5f9;color:#79586e}
 .dealer-status-review i{background:#9a738d}
+.dealer-delete-trigger{display:block;width:100%;margin-top:16px;padding:10px;border:1px solid #efdeda;border-radius:8px;background:#fff;color:#9b4938;font-size:11px;font-weight:600;cursor:pointer}
+.dealer-delete-trigger:hover,.dealer-delete-button:hover{background:#fbf4f2}
+.dealer-delete-confirm{margin-top:12px;padding:14px;border:1px solid #efdeda;border-radius:9px;background:#fcf7f5}
+.dealer-delete-confirm h3{margin:0;color:#652e24;font-size:13px}
+.dealer-delete-confirm p{margin:7px 0 13px;color:#73564f;font-size:10px;line-height:1.5}
+.dealer-delete-confirm>div{display:flex;justify-content:flex-end;gap:8px}
+.dealer-delete-button{min-height:36px;padding:0 12px;border:1px solid #9a4938;border-radius:8px;background:#9a4938;color:#fff;font-size:11px;font-weight:600;cursor:pointer}
+.dealer-delete-button:hover{background:#843b2e;color:#fff}
+.dealer-delete-button:disabled,.dealer-delete-confirm .secondary:disabled{opacity:.6;cursor:wait}
 .dealer-user-count{color:#30302d;font-size:10px;font-variant-numeric:tabular-nums}
 .dealer-user-caption{margin-left:4px;color:#92928c;font-size:9px}
 .dealer-updated{color:#777771!important;font-size:9px!important}

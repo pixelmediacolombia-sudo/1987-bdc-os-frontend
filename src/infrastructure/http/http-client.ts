@@ -31,6 +31,10 @@ export class HttpClient {
     })
   }
 
+  async delete<T = unknown>(path: string): Promise<T> {
+    return this.send<T>(path, { method: 'DELETE' })
+  }
+
   private async send<T>(path: string, options: RequestOptions): Promise<T> {
     const response = await this.request(`${this.basePath}${path}`, { ...options, credentials: 'include' })
     const payload = await response.json().catch(() => ({})) as { error?: string }

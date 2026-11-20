@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -118,12 +118,12 @@ describe('BDC OS CRM first screen', () => {
     render(<App />)
     await screen.findByRole('heading', { name: 'Administración de dealers' })
     await user.click(screen.getByRole('button', { name: 'Dealers' }))
-    await user.click(screen.getByRole('button', { name: 'En incorporación' }))
+    await user.click(screen.getByRole('button', { name: 'Pendiente' }))
     expect(screen.getByText('Ruta Norte Autos')).toBeTruthy()
     expect(screen.queryByText('Grupo Andino Motors')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Ver dealer Ruta Norte Autos' }))
     expect(screen.getByRole('dialog', { name: 'Ruta Norte Autos' })).toBeTruthy()
-    expect(screen.getByText(/La ficha completa y los cambios de estado requieren endpoints/)).toBeTruthy()
+    expect(screen.getByText(/Los miembros se cuentan después de aceptar la invitación y crear su contraseña/)).toBeTruthy()
     expect(screen.getByText('1', { selector: 'strong' })).toBeTruthy()
   })
 
@@ -166,6 +166,31 @@ describe('BDC OS CRM first screen', () => {
       method: 'POST',
       body: JSON.stringify({ displayName: 'Ana Pérez', email: 'miembro@example.com' }),
     }))
+  })
+
+  it('requires explicit confirmation before deleting a dealer and removes it from the directory', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/admin/dealers/dealer-norte') && init?.method === 'DELETE') return Promise.resolve(jsonResponse({}, 204))
+      if (String(input).endsWith('/admin/dealers')) return Promise.resolve(jsonResponse({ dealers: adminDealers }))
+      return Promise.resolve(jsonResponse({ authenticated: true, user: localAdmin }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('button', { name: 'Ver dealer Ruta Norte Autos' })
+    await user.click(screen.getByRole('button', { name: 'Ver dealer Ruta Norte Autos' }))
+    const drawer = screen.getByRole('dialog', { name: 'Ruta Norte Autos' })
+    await user.click(within(drawer).getByRole('button', { name: 'Eliminar dealer' }))
+    const confirmation = screen.getByRole('alertdialog', { name: '¿Eliminar Ruta Norte Autos?' })
+    expect(within(confirmation).getByText(/no se puede deshacer/i)).toBeTruthy()
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancelar' }))
+    expect(fetchMock).not.toHaveBeenCalledWith('/backend/auth/admin/dealers/dealer-norte', expect.objectContaining({ method: 'DELETE' }))
+
+    await user.click(within(drawer).getByRole('button', { name: 'Eliminar dealer' }))
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar dealer' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Ruta Norte Autos' })).toBeNull())
+    expect(fetchMock).toHaveBeenCalledWith('/backend/auth/admin/dealers/dealer-norte', expect.objectContaining({ method: 'DELETE', credentials: 'include' }))
+    expect(screen.queryByText('Ruta Norte Autos')).toBeNull()
   })
 
   it('creates a dealer through the backend and shows a copyable invitation link', async () => {

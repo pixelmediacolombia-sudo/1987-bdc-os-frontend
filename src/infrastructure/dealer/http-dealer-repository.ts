@@ -60,4 +60,8 @@ export class HttpDealerRepository implements DealerRepository {
     })
     return mapInvitation(result.invitation, input.email)
   }
+
+  async delete(dealerId: string): Promise<void> {
+    await this.http.delete(`/auth/admin/dealers/${encodeURIComponent(dealerId)}`)
+  }
 }
