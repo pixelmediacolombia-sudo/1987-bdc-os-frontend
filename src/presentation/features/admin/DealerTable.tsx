@@ -1,0 +1,7 @@
+import Icon from '../../components/Icon'
+import type { Dealer } from '../../../domain/dealer/dealer'
+import { DealerStatusBadge } from './AdminStates'
+
+export function DealerTable({ dealers, onSelectDealer, emptyMessage }: { dealers: Dealer[]; onSelectDealer: (dealer: Dealer) => void; emptyMessage: string }) {
+  return <div className="admin-table-wrap">{dealers.length > 0 && <table className="admin-table"><thead><tr><th scope="col">Dealer</th><th scope="col">Estado</th><th scope="col">Miembros activos</th><th scope="col">Invitaciones pendientes</th><th scope="col"><span className="sr-only">Acciones</span></th></tr></thead><tbody>{dealers.map((dealer) => <tr key={dealer.id}><td><div className="dealer-cell"><span className="dealer-avatar">{dealer.initials}</span><span><strong>{dealer.name}</strong><small title={dealer.id}>ID · {dealer.id}</small></span></div></td><td><DealerStatusBadge status={dealer.status} /></td><td><strong className="dealer-user-count">{dealer.users}</strong><small className="dealer-user-caption">{dealer.users === 1 ? 'miembro' : 'miembros'}</small></td><td className="dealer-updated">{dealer.pendingInvitations}</td><td><button className="link-button dealer-view-button" aria-label={`Ver dealer ${dealer.name}`} onClick={() => onSelectDealer(dealer)}>Ver <Icon name="arrow" size={14} /></button></td></tr>)}</tbody></table>}{dealers.length === 0 && <div className="empty admin-empty"><Icon name="search" size={18} /><strong>{emptyMessage}</strong></div>}</div>
+}
