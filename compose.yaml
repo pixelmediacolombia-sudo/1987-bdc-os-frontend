@@ -34,7 +34,7 @@ services:
       BDC_ADMIN_NAME: ${BDC_ADMIN_NAME:-}
       BDC_ADMIN_PASSWORD_HASH: ${BDC_ADMIN_PASSWORD_HASH:-}
       PORT: "3000"
-      BDC_APP_URL: http://localhost:3000
+      BDC_APP_URL: http://localhost:4173
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_SECURE: "false"
