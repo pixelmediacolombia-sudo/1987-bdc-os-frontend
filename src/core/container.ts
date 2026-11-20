@@ -8,10 +8,13 @@ import { SignOut } from '../application/auth/sign-out'
 import { HttpAuthRepository } from '../infrastructure/auth/http-auth-repository'
 import { HttpClient } from '../infrastructure/http/http-client'
 import { HttpDealerRepository } from '../infrastructure/dealer/http-dealer-repository'
+import { HttpAuditRepository } from '../infrastructure/admin-audit/http-audit-repository'
+import { ListAuditEvents } from '../application/admin-audit/list-audit-events'
 
 const http = new HttpClient('/backend')
 const authRepository = new HttpAuthRepository(http)
 const dealerRepository = new HttpDealerRepository(http)
+const auditRepository = new HttpAuditRepository(http)
 
 export const appServices = {
   auth: {
@@ -25,4 +28,5 @@ export const appServices = {
     inviteMember: new InviteDealerMember(dealerRepository),
     delete: new DeleteDealer(dealerRepository),
   },
+  audit: { list: new ListAuditEvents(auditRepository) },
 }

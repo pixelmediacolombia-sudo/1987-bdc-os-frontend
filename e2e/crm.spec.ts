@@ -26,7 +26,7 @@ async function signInAdmin(page: Page) {
 test('admin lands on the global dealer overview', async ({ page }) => {
   await signInAdmin(page)
   await expect(page.getByText('Dealers registrados')).toBeVisible()
-  await expect(page.getByText('Usuarios de dealer')).toBeVisible()
+  await expect(page.getByLabel('Indicadores de dealers').getByText('Miembros activos')).toBeVisible()
   await expect(page.getByText('Grupo Andino Motors')).toBeVisible()
   await expect(page.getByText('Necesitan tu atención', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Nueva oportunidad' })).toHaveCount(0)
@@ -35,7 +35,7 @@ test('admin lands on the global dealer overview', async ({ page }) => {
 test('admin filters dealer accounts and opens their detail', async ({ page }) => {
   await signInAdmin(page)
   await page.getByRole('button', { name: 'Dealers' }).click()
-  await page.getByRole('button', { name: 'Suspendido' }).click()
+  await page.getByRole('button', { name: 'Inactivo' }).click()
   await expect(page.getByText('Costa Motor Group')).toBeVisible()
   await expect(page.getByText('Grupo Andino Motors')).toHaveCount(0)
   await page.getByRole('button', { name: 'Ver dealer Costa Motor Group' }).click()
