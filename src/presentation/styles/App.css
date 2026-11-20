@@ -59,6 +59,8 @@
 .dealer-status-onboarding i{background:#b78c43}
 .dealer-status-suspended{border-color:#efdeda;background:#fbf4f2;color:#9b5c4a}
 .dealer-status-suspended i{background:#b87059}
+.dealer-status-review{border-color:#eadfe8;background:#faf5f9;color:#79586e}
+.dealer-status-review i{background:#9a738d}
 .dealer-user-count{color:#30302d;font-size:10px;font-variant-numeric:tabular-nums}
 .dealer-user-caption{margin-left:4px;color:#92928c;font-size:9px}
 .dealer-updated{color:#777771!important;font-size:9px!important}
@@ -78,12 +80,13 @@
 .admin-scope p{margin:0;color:#777771;font-size:10px;line-height:1.55}
 .admin-scope>span:last-child{display:block;margin-top:13px;padding-top:10px;border-top:1px solid #efefec;color:#999992;font-size:9px}
 .admin-directory-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px}
+.admin-heading-actions{display:flex;align-items:center;gap:8px}
 .admin-directory-toolbar h2{margin:0;color:#292927;font-size:13px}
 .admin-directory-toolbar p{margin:4px 0 0;color:#898983;font-size:9px}
 .admin-status-filters{flex-wrap:wrap}
 .admin-status-filters button{padding-inline:10px}
 .admin-empty{min-height:150px}
-.admin-dealer-drawer .drawer-top{margin-bottom:25px}
+.admin-dealer-drawer{overflow-y:auto}.admin-dealer-drawer .drawer-top{margin-bottom:25px}
 .dealer-detail-avatar{width:50px;height:50px;display:grid;place-items:center;margin-bottom:13px;border:1px solid #e6e6e1;border-radius:13px;background:#f1f1ee;color:#373733;font-size:13px;font-weight:700}
 .admin-dealer-drawer h2{margin:0 0 4px;color:#222;font-size:19px;letter-spacing:-.35px}
 .admin-dealer-drawer>p{margin:0 0 12px;color:#777771;font-size:11px}
@@ -93,6 +96,15 @@
 .dealer-detail-facts strong{color:#343430;font-size:10px;text-align:right}
 .dealer-detail-note{margin-top:18px;padding:11px 12px;border:1px solid #ecece8;border-radius:8px;background:#f8f8f6;color:#76766f;font-size:10px;line-height:1.5}
 .dealer-detail-close{width:100%;margin-top:16px}
+.admin-member-invite{margin-top:19px;padding-top:16px;border-top:1px solid #ecece8}
+.admin-member-invite h3{margin:0 0 12px;color:#292927;font-size:12px}
+.admin-member-invite form{display:grid;gap:10px}
+.admin-member-invite label{display:grid;gap:5px;color:#4d4d48;font-size:10px;font-weight:600}
+.admin-member-invite input{width:100%;height:36px;padding:0 9px;border:1px solid #dfdfda;border-radius:7px;background:#fff;color:#292927;font-size:11px}
+.admin-member-invite .primary{width:100%;margin-top:2px}
+.admin-invite-result{display:grid;gap:7px;color:#595953;font-size:10px;line-height:1.5}
+.admin-invite-result input{background:#fafaf8}
+.admin-invite-result small{color:#898983}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
 @media(max-width:1180px){.admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-grid{grid-template-columns:1fr}.admin-side-column{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.admin-page-heading{align-items:flex-start;flex-direction:column}.admin-page-heading h1{font-size:25px}.admin-stat-grid{gap:9px}.admin-stat{min-height:110px;padding:12px}.admin-stat>strong{font-size:25px}.admin-side-column{grid-template-columns:1fr}.admin-directory-toolbar{align-items:flex-start;flex-direction:column;padding-inline:13px}.admin-status-filters{max-width:100%;overflow-x:auto;flex-wrap:nowrap}.admin-table{min-width:650px}.admin-table th:first-child,.admin-table td:first-child{padding-left:13px}.admin-table th:last-child,.admin-table td:last-child{padding-right:13px}}
@@ -103,6 +115,9 @@
 .admin-form-error{margin:0!important;padding:9px 10px;border:1px solid #efd9d5;border-radius:7px;background:#fcf5f3;color:#8d4337!important;font-size:10px!important;line-height:1.45}
 .admin-load-error{margin-top:12px!important}
 .admin-data-state{margin:12px 0 0;color:#777771;font-size:10px}
+.admin-error-state{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0;padding:13px 15px;border:1px solid #efd9d5;border-radius:9px;background:#fcf5f3}
+.admin-error-state p{margin:0;color:#8d4337;font-size:10px;line-height:1.5}
+.admin-error-state button:disabled,.admin-heading-actions button:disabled{opacity:.55;cursor:wait}
 .invite-link-label{display:block;margin:10px 0 6px;color:#595953;font-size:10px;font-weight:700}
 .admin-invite-dialog .invite-link-input{width:100%;height:39px;padding:0 10px;border:1px solid #dfdfda;border-radius:7px;background:#fafaf8;color:#44443f;font-size:10px}
 .invite-delivery-note{display:block;margin-top:12px;padding-top:10px;border-top:1px solid #efefec;color:#898983;font-size:9px;line-height:1.5}

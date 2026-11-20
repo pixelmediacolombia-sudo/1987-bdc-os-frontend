@@ -105,8 +105,8 @@ describe('BDC OS CRM first screen', () => {
     stubAdminApis()
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Administración de dealers' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: 'Directorio de dealers' })).toBeTruthy()
     expect(await screen.findByText('Grupo Andino Motors')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Directorio de dealers' })).toBeTruthy()
     expect(screen.getByText('Administrador global')).toBeTruthy()
     expect(screen.queryByText('Necesitan tu atención')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Nueva oportunidad' })).toBeNull()
@@ -123,7 +123,49 @@ describe('BDC OS CRM first screen', () => {
     expect(screen.queryByText('Grupo Andino Motors')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Ver dealer Ruta Norte Autos' }))
     expect(screen.getByRole('dialog', { name: 'Ruta Norte Autos' })).toBeTruthy()
-    expect(screen.getByText(/se habilitará al conectar los endpoints/)).toBeTruthy()
+    expect(screen.getByText(/La ficha completa y los cambios de estado requieren endpoints/)).toBeTruthy()
+    expect(screen.getByText('1', { selector: 'strong' })).toBeTruthy()
+  })
+
+  it('retries the live admin directory after a recoverable load error', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ authenticated: true, user: localAdmin }))
+      .mockResolvedValueOnce(jsonResponse({ error: 'Servicio no disponible.' }, 503))
+      .mockResolvedValueOnce(jsonResponse({ dealers: adminDealers }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Administración de dealers' })
+    expect((await screen.findByRole('alert')).textContent).toContain('Servicio no disponible.')
+    await user.click(screen.getByRole('button', { name: 'Dealers' }))
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('Grupo Andino Motors')).toBeTruthy()
+  })
+
+  it('invites another dealer member through the admin invitation endpoint', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/admin/dealers/dealer-andino/invitations')) {
+        return Promise.resolve(jsonResponse({ invitation: { email: 'miembro@example.com', url: 'http://localhost:3000/auth/invitations/accept?token=member-token', delivery: 'manual', expiresInHours: 72 } }, 201))
+      }
+      if (url.endsWith('/admin/dealers')) return Promise.resolve(jsonResponse({ dealers: adminDealers }))
+      return Promise.resolve(jsonResponse({ authenticated: true, user: localAdmin }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByText('Grupo Andino Motors')
+    await user.click(screen.getByRole('button', { name: 'Ver dealer Grupo Andino Motors' }))
+    const drawer = screen.getByRole('dialog', { name: 'Grupo Andino Motors' })
+    await user.type(within(drawer).getByLabelText('Nombre del miembro'), 'Ana Pérez')
+    await user.type(within(drawer).getByLabelText('Correo electrónico'), 'miembro@example.com')
+    await user.click(within(drawer).getByRole('button', { name: 'Enviar invitación' }))
+    expect(await within(drawer).findByText('Invitación creada')).toBeTruthy()
+    expect(within(drawer).getByDisplayValue(/member-token/)).toBeTruthy()
+    expect(fetchMock).toHaveBeenCalledWith('/backend/auth/admin/dealers/dealer-andino/invitations', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ displayName: 'Ana Pérez', email: 'miembro@example.com' }),
+    }))
   })
 
   it('creates a dealer through the backend and shows a copyable invitation link', async () => {

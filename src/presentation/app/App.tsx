@@ -25,10 +25,16 @@ function App() {
   const [dealers, setDealers] = useState<DemoDealer[]>([])
   const [adminLoading, setAdminLoading] = useState(true)
   const [adminError, setAdminError] = useState('')
+  const [adminRetryCount, setAdminRetryCount] = useState(0)
   const [selected, setSelected] = useState<Lead | null>(null)
   const [selectedDealer, setSelectedDealer] = useState<DemoDealer | null>(null)
   const [creating, setCreating] = useState(false)
   const [creatingDealer, setCreatingDealer] = useState(false)
+  function retryAdminLoad() {
+    setAdminLoading(true)
+    setAdminError('')
+    setAdminRetryCount((count) => count + 1)
+  }
   useEffect(() => {
     let mounted = true
     appServices.auth.getCurrentSession.execute().then((user) => {
@@ -49,7 +55,7 @@ function App() {
       if (mounted) setAdminError(cause instanceof Error ? cause.message : 'No pudimos conectar con BDC OS.')
     }).finally(() => { if (mounted) setAdminLoading(false) })
     return () => { mounted = false }
-  }, [authUser])
+  }, [authUser, adminRetryCount])
   const visible = useMemo(() => filterLeads(leads, { status: filter, query: search }), [filter, leads, search])
   const visibleDealers = useMemo(() => filterDealers(dealers, { status: dealerStatusFilter, query: search }), [dealers, dealerStatusFilter, search])
   async function signIn(email: string, password: string) {
@@ -68,6 +74,8 @@ function App() {
     setAuthUser(null)
     setAuthStatus('signed-out')
     setActive('Inicio')
+    setAdminLoading(true)
+    setAdminError('')
   }
   if (authStatus === 'checking') return <main className="auth-loading" aria-live="polite"><img className="auth-logo" src="/bdc-os-crm.png" alt="BDC OS CRM" /><span>Verificando tu acceso…</span></main>
   if (authStatus !== 'signed-in' || !authUser) return <LoginScreen error={authError} onSubmit={signIn} />
@@ -79,7 +87,7 @@ function App() {
     setLeads((items) => [{ id: Date.now(), name, company: 'Dealer de muestra', channel: String(data.get('channel')), summary: 'Nuevo registro agregado en esta sesión de demostración.', time: 'ahora', status: 'Nuevo', initials, tone: 'neutral' }, ...items]); setFilter('Todo'); setCreating(false)
   }
   return <AppShell user={authUser} active={active} navigation={nav} search={search} isAdmin={isAdmin} onNavigate={setActive} onSearch={setSearch} onSignOut={() => void signOut()}>
-        {isAdmin ? (active === 'Resumen' ? <AdminOverview dealers={dealers} loading={adminLoading} error={adminError} onCreateDealer={() => setCreatingDealer(true)} onViewAll={() => { setSearch(''); setDealerStatusFilter('Todos'); setActive('Dealers') }} onSelectDealer={setSelectedDealer} /> : active === 'Dealers' ? <DealerDirectory dealers={visibleDealers} total={dealers.length} loading={adminLoading} error={adminError} status={dealerStatusFilter} onStatusChange={setDealerStatusFilter} onCreateDealer={() => setCreatingDealer(true)} onSelectDealer={setSelectedDealer} /> : <section className="module-preview"><span className="preview-icon"><Icon name={nav.find((item) => item.name === active)?.icon ?? 'home'} size={21} /></span><p className="eyebrow">ADMINISTRACIÓN BDC OS</p><h1>{sectionTitles[active]}</h1><p>Esta vista se habilitará al conectar los servicios de administración del backend.</p><div><small>Alcance</small><strong>{active === 'Usuarios' ? 'Cuentas y accesos asociados a cada dealer.' : active === 'Actividad' ? 'Cambios y acciones realizados en la plataforma.' : 'Preferencias generales y controles globales.'}</strong><span>Los datos de esta sección aún no están conectados.</span></div><button className="secondary" onClick={() => setActive('Resumen')}>Volver al resumen</button></section>) : active === 'Inicio' ? <>
+        {isAdmin ? (active === 'Resumen' ? <AdminOverview dealers={dealers} loading={adminLoading} error={adminError} onRetry={retryAdminLoad} onCreateDealer={() => setCreatingDealer(true)} onViewAll={() => { setSearch(''); setDealerStatusFilter('Todos'); setActive('Dealers') }} onSelectDealer={setSelectedDealer} /> : active === 'Dealers' ? <DealerDirectory dealers={visibleDealers} total={dealers.length} loading={adminLoading} error={adminError} onRetry={retryAdminLoad} status={dealerStatusFilter} onStatusChange={setDealerStatusFilter} onCreateDealer={() => setCreatingDealer(true)} onSelectDealer={setSelectedDealer} /> : <section className="module-preview"><span className="preview-icon"><Icon name={nav.find((item) => item.name === active)?.icon ?? 'home'} size={21} /></span><p className="eyebrow">ADMINISTRACIÓN BDC OS</p><h1>{sectionTitles[active]}</h1><p>Esta vista se habilitará al conectar los servicios de administración del backend.</p><div><small>Alcance</small><strong>{active === 'Usuarios' ? 'Cuentas y accesos asociados a cada dealer.' : active === 'Actividad' ? 'Cambios y acciones realizados en la plataforma.' : 'Preferencias generales y controles globales.'}</strong><span>Los datos de esta sección aún no están conectados.</span></div><button className="secondary" onClick={() => setActive('Resumen')}>Volver al resumen</button></section>) : active === 'Inicio' ? <>
           <div className="page-heading"><div><p className="eyebrow">MIÉRCOLES, 19 DE NOVIEMBRE</p><h1>{sectionTitles[active]}</h1><p className="subtitle">Una vista clara para saber qué necesita atención y cuál es el siguiente paso.</p></div><button className="primary" onClick={() => setCreating(true)}><Icon name="plus" size={16} /> Nueva oportunidad</button></div>
           <section className="metrics" aria-label="Indicadores de demostración">
             <article className="metric metric-feature"><div className="metric-top"><span className="metric-icon dark"><Icon name="inbox" size={16} /></span><span>requieren seguimiento</span><b>DEMO</b></div><div className="metric-number"><strong>08</strong><span>Conversaciones pendientes</span></div><div className="metric-foot"><span className="bars">▂ ▄ ▆ ▃ ▇ ▅ ▆ ▄ ▇</span>2 con prioridad alta</div></article>
@@ -98,7 +106,7 @@ function App() {
     {creating && <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setCreating(false) }}><section className="dialog" role="dialog" aria-modal="true" aria-labelledby="create-title"><header><span className="dialog-icon"><Icon name="plus" size={16} /></span><button className="icon-button" aria-label="Cerrar" onClick={() => setCreating(false)}><Icon name="close" /></button></header><h2 id="create-title">Nueva oportunidad</h2><p>Registro temporal para probar la interfaz.</p><form onSubmit={addLead}><label>Nombre del contacto<input autoFocus name="name" required placeholder="Ej. Andrea Gómez" /></label><label>Canal de origen<select name="channel"><option>WhatsApp</option><option>Instagram</option><option>Facebook</option><option>Formulario web</option></select></label><small>El registro solo vive en esta sesión y desaparece al recargar.</small><div className="dialog-actions"><button type="button" className="secondary" onClick={() => setCreating(false)}>Cancelar</button><button className="primary">Crear en demo</button></div></form></section></div>}
     {selected && <div className="overlay drawer-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="contact-title"><div className="drawer-top"><span className="eyebrow">CONTACTO DE DEMOSTRACIÓN</span><button className="icon-button" aria-label="Cerrar detalle" onClick={() => setSelected(null)}><Icon name="close" /></button></div><span className={`drawer-avatar ${selected.tone}`}>{selected.initials}</span><h2 id="contact-title">{selected.name}</h2><p>{selected.company}</p><em className={`status status-${selected.status.toLowerCase()}`}><i />{selected.status === 'Prioridad' ? 'Atención prioritaria' : selected.status === 'Nuevo' ? 'Nuevo contacto' : 'Seguimiento'}</em><div className="drawer-actions"><button className="secondary"><Icon name="phone" size={15} /> Llamar</button><button className="primary"><Icon name="mail" size={15} /> Responder</button></div><hr /><span className="eyebrow">ÚLTIMA ACTIVIDAD</span><p className="drawer-summary">{selected.summary}</p><small>{selected.channel} · {selected.time}</small><div className="drawer-note">Los controles de contacto son de muestra y aún no envían mensajes.</div></aside></div>}
     {isAdmin && creatingDealer && <AdminDealerManager onClose={() => setCreatingDealer(false)} onCreate={(input: CreateDealerInput) => appServices.dealers.createWithInvitation.execute(input)} onCreated={({ dealer }) => setDealers((items) => [dealer, ...items])} />}
-    {isAdmin && selectedDealer && <DealerDetails dealer={selectedDealer} onClose={() => setSelectedDealer(null)} />}
+    {isAdmin && selectedDealer && <DealerDetails dealer={selectedDealer} onClose={() => setSelectedDealer(null)} onInviteMember={(displayName, email) => appServices.dealers.inviteMember.execute({ dealerId: selectedDealer.id, displayName, email })} onInvited={() => { setSelectedDealer((dealer) => dealer ? { ...dealer, pendingInvitations: dealer.pendingInvitations + 1 } : dealer); retryAdminLoad() }} />}
   </AppShell>
 }
 
