@@ -112,6 +112,28 @@ describe('BDC OS CRM first screen', () => {
     expect(screen.queryByRole('button', { name: 'Nueva oportunidad' })).toBeNull()
   })
 
+  it('opens the admin user directory with accounts and pending invitations', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/admin/dealers')) return Promise.resolve(jsonResponse({ dealers: adminDealers }))
+      if (url.includes('/admin/users?')) return Promise.resolve(jsonResponse({ entries: [
+        { record_type: 'user', id: 'user-1', display_name: 'Alex Rivera', email: 'alex@example.com', account_type: 'user', status: 'active', created_at: '2026-11-20T10:00:00.000Z', expires_at: null, dealers: [{ id: 'dealer-andino', name: 'Grupo Andino Motors' }] },
+        { record_type: 'invitation', id: 'invite-1', display_name: 'Sam Lee', email: 'sam@example.com', account_type: 'user', status: 'pending', created_at: '2026-11-21T10:00:00.000Z', expires_at: '2026-11-24T10:00:00.000Z', dealers: [{ id: 'dealer-norte', name: 'Ruta Norte Autos' }] },
+      ], total: 2, limit: 50, offset: 0 }))
+      return Promise.resolve(jsonResponse({ authenticated: true, user: localAdmin }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Administración de dealers' })
+    await user.click(screen.getByRole('button', { name: 'Usuarios' }))
+
+    expect(await screen.findByRole('heading', { name: 'Usuarios y accesos' })).toBeTruthy()
+    expect(await screen.findByText('Alex Rivera')).toBeTruthy()
+    expect(screen.getByText('Invitación pendiente')).toBeTruthy()
+    expect(String(fetchMock.mock.calls.find(([input]) => String(input).includes('/admin/users?'))?.[0])).toContain('/auth/admin/users?')
+  })
+
   it('filters the admin dealer directory and opens a dealer account detail', async () => {
     const user = userEvent.setup()
     stubAdminApis()

@@ -14,6 +14,8 @@ import { GetDealerConfiguration } from '../application/dealer/get-dealer-configu
 import { HttpDealerConfigurationRepository } from '../infrastructure/dealer/http-dealer-configuration-repository'
 import { GetSystemHealth } from '../application/system-health/get-system-health'
 import { HttpSystemHealthRepository } from '../infrastructure/system-health/http-system-health-repository'
+import { HttpAdminUserRepository } from '../infrastructure/admin-users/http-admin-user-repository'
+import { ListAdminUsers } from '../application/admin-users/list-admin-users'
 
 const http = new HttpClient('/backend')
 const authRepository = new HttpAuthRepository(http)
@@ -21,6 +23,7 @@ const dealerRepository = new HttpDealerRepository(http)
 const auditRepository = new HttpAuditRepository(http)
 const configurationRepository = new HttpDealerConfigurationRepository(http)
 const systemHealthRepository = new HttpSystemHealthRepository(http)
+const adminUserRepository = new HttpAdminUserRepository(http)
 
 export const appServices = {
   auth: {
@@ -37,4 +40,5 @@ export const appServices = {
   audit: { list: new ListAuditEvents(auditRepository) },
   configuration: { getDealer: new GetDealerConfiguration(configurationRepository) },
   systemHealth: { get: new GetSystemHealth(systemHealthRepository) },
+  adminUsers: { list: new ListAdminUsers(adminUserRepository) },
 }
