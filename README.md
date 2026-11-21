@@ -16,6 +16,8 @@ El stack Compose levanta frontend, backend, PostgreSQL 18 y Redis 7. La base y R
        docker compose up -d --build
        docker compose ps
 
+La etapa de compilación del frontend usa Node.js `24.22.1` mediante la imagen `node:24.22.1-alpine` fijada en `Dockerfile`. Si Docker Engine no estaba disponible al actualizarla, vuelve a ejecutar los comandos anteriores para reconstruir el servicio.
+
 3. Abre <http://localhost:4173>. API: <http://localhost:3000/health>.
 
 La imagen del backend se construye desde el repositorio hermano `../1987-bdc-os-backend`. El arranque local aplica el esquema y, solo con `NODE_ENV=development`, crea el único admin a partir del hash del `.env`. El login usa una cookie HttpOnly y sesiones revocables.
@@ -54,3 +56,11 @@ Las pruebas e2e requieren que `docker compose up -d` esté activo y Chromium de 
 ## Plan de trabajo inicial
 
 Ver [`docs/plan-desarrollo.md`](docs/plan-desarrollo.md) para las etapas del frontend.
+
+## Seguimiento interno de Meta CAPI
+
+La auditoría de configuración del backend de producción, sus resultados y el siguiente paso están en [`docs/meta-capi-produccion.md`](docs/meta-capi-produccion.md). Esta nota es operativa e interna; no implica que Meta CAPI esté habilitado ni que se hayan cambiado credenciales.
+
+## Backlog REA para distribuir
+
+Las tareas Admin/CAPI y las historias derivadas de la ingeniería inversa, con prioridades, equipos sugeridos, dependencias y criterios de aceptación, están en [`docs/backlog-rea-distribucion.md`](docs/backlog-rea-distribucion.md). Separa hallazgos verificados de análisis estático y de tareas propuestas.
