@@ -134,3 +134,23 @@
 .invite-delivery-note{display:block;margin-top:12px;padding-top:10px;border-top:1px solid #efefec;color:#898983;font-size:9px;line-height:1.5}
 .profile>.logout-label{flex:0 0 auto;display:block;margin-left:4px;color:#777771;font-size:10px;white-space:nowrap}
 .profile:hover>.logout-label{color:#171717}
+/* ADM-06: platform health uses the existing neutral admin palette. */
+.system-health-view .page-heading{align-items:center}
+.system-health-summary{display:flex;align-items:center;gap:13px;margin-bottom:14px;padding:17px 18px;border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface);box-shadow:var(--shadow)}
+.system-health-summary-dot,.system-health-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#5c8065}
+.system-health-summary.degraded .system-health-summary-dot,.system-health-dot.unavailable{background:#ad7a36}
+.system-health-summary>div{min-width:0;flex:1}
+.system-health-summary h2{margin:0;font-size:14px;font-weight:700;letter-spacing:-.2px}
+.system-health-summary p{margin:4px 0 0;color:var(--muted);font-size:11px}
+.system-health-overall-label{padding:5px 8px;border-radius:7px;background:#edf3ee;color:#496d52;font-size:10px;font-weight:700}
+.system-health-overall-label.degraded{background:#f6f0e5;color:#8a632d}
+.system-health-list{overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface);box-shadow:var(--shadow)}
+.system-health-row{display:flex;align-items:center;gap:12px;min-height:68px;padding:12px 18px;border-bottom:1px solid #f0f0ed}
+.system-health-row:last-child{border-bottom:0}
+.system-health-row>div{display:grid;gap:4px;min-width:0;flex:1}
+.system-health-row strong{font-size:12px;font-weight:650}
+.system-health-row small{color:var(--muted);font-size:10px}
+.system-health-status{color:#496d52;font-size:11px;font-weight:650}
+.system-health-status.unavailable{color:#8a632d}
+.system-health-note{margin:13px 2px 0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:640px){.system-health-view .page-heading{align-items:flex-start;flex-direction:column}.system-health-summary{align-items:flex-start;flex-wrap:wrap}.system-health-overall-label{margin-left:22px}}
