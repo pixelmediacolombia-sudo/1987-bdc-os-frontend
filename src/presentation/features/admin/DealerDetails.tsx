@@ -1,16 +1,20 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import Icon from '../../components/Icon'
 import type { Dealer, DealerInvitation } from '../../../domain/dealer/dealer'
 import { DealerStatusBadge } from './AdminStates'
 import { DealerConfigurationPanel } from './DealerConfigurationPanel'
 import { MemberInviteForm } from './MemberInviteForm'
 
-export function DealerDetails({ dealer, onClose, onInviteMember, onInvited, onDelete }: {
-  dealer: Dealer; onClose: () => void; onInviteMember: (name: string, email: string) => Promise<DealerInvitation>; onInvited: () => void; onDelete: (dealerId: string) => Promise<void>
+export function DealerDetails({ dealer, onClose, onInviteMember, onInvited, onRename, onDelete }: {
+  dealer: Dealer; onClose: () => void; onInviteMember: (name: string, email: string) => Promise<DealerInvitation>; onInvited: () => void; onRename: (name: string) => Promise<void>; onDelete: (dealerId: string) => Promise<void>
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [dealerName, setDealerName] = useState(dealer.name === 'Dealer sin nombre' ? '' : dealer.name)
+  const [savingName, setSavingName] = useState(false)
+  const [nameError, setNameError] = useState('')
+  const [nameSaved, setNameSaved] = useState(false)
 
   async function deleteDealer() {
     setDeleting(true)
@@ -20,10 +24,23 @@ export function DealerDetails({ dealer, onClose, onInviteMember, onInvited, onDe
     finally { setDeleting(false) }
   }
 
+  async function saveDealerName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const name = dealerName.trim()
+    if (!name || name.length > 160) { setNameError('Ingresa un nombre de hasta 160 caracteres.'); return }
+    setSavingName(true)
+    setNameError('')
+    setNameSaved(false)
+    try { await onRename(name); setNameSaved(true) }
+    catch (cause) { setNameError(cause instanceof Error ? cause.message : 'No pudimos guardar el nombre.') }
+    finally { setSavingName(false) }
+  }
+
   return <div className="overlay drawer-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget && !confirmDelete) onClose() }}>
     <aside className="drawer admin-dealer-drawer" role="dialog" aria-modal="true" aria-labelledby="dealer-detail-title">
       <div className="drawer-top"><span className="eyebrow">RESUMEN DE CUENTA</span><button className="icon-button" aria-label="Cerrar detalle del dealer" onClick={onClose}><Icon name="close" /></button></div>
       <span className="dealer-detail-avatar">{dealer.initials}</span><h2 id="dealer-detail-title">{dealer.name}</h2><p className="dealer-id">ID · {dealer.id}</p><DealerStatusBadge status={dealer.status} />
+      <section className="admin-member-invite" aria-label="Editar nombre del dealer"><h3>Nombre del dealer</h3><form onSubmit={(event) => void saveDealerName(event)}><label>Nombre visible<input required maxLength={160} value={dealerName} onChange={(event) => { setDealerName(event.target.value); setNameSaved(false) }} /></label>{nameError && <p className="admin-form-error" role="alert">{nameError}</p>}{nameSaved && <p className="admin-success" role="status">Nombre guardado en la ficha del dealer.</p>}<button className="primary" disabled={savingName}>{savingName ? 'Guardando…' : 'Guardar nombre'}</button></form></section>
       <div className="dealer-detail-facts"><div><small>Miembros activos</small><strong>{dealer.users}</strong></div><div><small>Invitaciones pendientes</small><strong>{dealer.pendingInvitations}</strong></div></div>
       <div className="dealer-detail-note">Los miembros se cuentan después de aceptar la invitación y crear su contraseña. El estado se actualizará a Activo al completar ese proceso.</div>
       <DealerConfigurationPanel dealerId={dealer.id} />

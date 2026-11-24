@@ -64,4 +64,8 @@ export class HttpDealerRepository implements DealerRepository {
   async delete(dealerId: string): Promise<void> {
     await this.http.delete(`/auth/admin/dealers/${encodeURIComponent(dealerId)}`)
   }
+
+  async rename(dealerId: string, name: string): Promise<void> {
+    await this.http.patch(`/auth/admin/dealers/${encodeURIComponent(dealerId)}/name`, { name })
+  }
 }

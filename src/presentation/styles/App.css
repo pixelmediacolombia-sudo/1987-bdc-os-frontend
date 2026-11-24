@@ -150,6 +150,7 @@
 .admin-user-empty span{max-width:360px;font-size:9px;line-height:1.5}
 @media(max-width:760px){.admin-user-filters{padding-inline:13px}.admin-user-filters label{min-width:calc(50% - 5px);flex:1}.admin-user-filters .admin-user-search{min-width:100%}.admin-user-search-button{flex:1}}
 .admin-form-error{margin:0!important;padding:9px 10px;border:1px solid #efd9d5;border-radius:7px;background:#fcf5f3;color:#8d4337!important;font-size:10px!important;line-height:1.45}
+.admin-success{margin:0!important;padding:9px 10px;border:1px solid #d6e8da;border-radius:7px;background:#f3faf4;color:#357044!important;font-size:10px!important;line-height:1.45}
 .admin-load-error{margin-top:12px!important}
 .admin-data-state{margin:12px 0 0;color:#777771;font-size:10px}
 .admin-error-state{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0;padding:13px 15px;border:1px solid #efd9d5;border-radius:9px;background:#fcf5f3}

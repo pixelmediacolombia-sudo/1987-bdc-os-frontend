@@ -2,6 +2,7 @@ import { CreateDealerWithInvitation } from '../application/dealer/create-dealer'
 import { ListDealers } from '../application/dealer/list-dealers'
 import { InviteDealerMember } from '../application/dealer/invite-dealer-member'
 import { DeleteDealer } from '../application/dealer/delete-dealer'
+import { RenameDealer } from '../application/dealer/rename-dealer'
 import { GetCurrentSession } from '../application/auth/get-current-session'
 import { SignIn } from '../application/auth/sign-in'
 import { SignOut } from '../application/auth/sign-out'
@@ -36,6 +37,7 @@ export const appServices = {
     createWithInvitation: new CreateDealerWithInvitation(dealerRepository),
     inviteMember: new InviteDealerMember(dealerRepository),
     delete: new DeleteDealer(dealerRepository),
+    rename: new RenameDealer(dealerRepository),
   },
   audit: { list: new ListAuditEvents(auditRepository) },
   configuration: { getDealer: new GetDealerConfiguration(configurationRepository) },

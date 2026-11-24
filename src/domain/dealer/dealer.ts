@@ -56,6 +56,7 @@ export interface DealerRepository {
   list(): Promise<Dealer[]>
   createWithInvitation(input: CreateDealerInput): Promise<CreatedDealer>
   inviteMember(input: InviteDealerMemberInput): Promise<DealerInvitation>
+  rename(dealerId: string, name: string): Promise<void>
   delete(dealerId: string): Promise<void>
 }
 
