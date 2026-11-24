@@ -18,7 +18,6 @@ import { HttpSystemHealthRepository } from '../infrastructure/system-health/http
 import { HttpAdminUserRepository } from '../infrastructure/admin-users/http-admin-user-repository'
 import { ListAdminUsers } from '../application/admin-users/list-admin-users'
 import { HttpContactRepository } from '../infrastructure/contacts/http-contact-repository'
-import { HttpSofiaSimulatorRepository } from '../infrastructure/sofia-simulator/http-sofia-simulator-repository'
 
 const http = new HttpClient('/backend')
 const authRepository = new HttpAuthRepository(http)
@@ -28,7 +27,6 @@ const configurationRepository = new HttpDealerConfigurationRepository(http)
 const systemHealthRepository = new HttpSystemHealthRepository(http)
 const adminUserRepository = new HttpAdminUserRepository(http)
 const contactRepository = new HttpContactRepository(http)
-const sofiaSimulatorRepository = new HttpSofiaSimulatorRepository(http)
 
 export const appServices = {
   auth: {
@@ -48,5 +46,4 @@ export const appServices = {
   systemHealth: { get: new GetSystemHealth(systemHealthRepository) },
   adminUsers: { list: new ListAdminUsers(adminUserRepository) },
   contacts: { listDealers: () => contactRepository.listDealers(), list: (dealerId: string, search: string) => contactRepository.list(dealerId, search), get: (dealerId: string, contactId: string) => contactRepository.get(dealerId, contactId) },
-  localSofiaSimulator: { status: () => sofiaSimulatorRepository.status(), turn: (message: string, conversationId?: string) => sofiaSimulatorRepository.turn(message, conversationId), reset: (conversationId?: string) => sofiaSimulatorRepository.reset(conversationId) },
 }

@@ -1,6 +1,6 @@
 import type { AccountType } from '../../domain/auth/auth-user'
 
-export type Section = 'Resumen' | 'Dealers' | 'Usuarios' | 'Actividad' | 'Inicio' | 'Bandeja' | 'Contactos' | 'Oportunidades' | 'Automatizaciones' | 'Calendario' | 'Reportes' | 'Configuración' | 'Simulador Sofia'
+export type Section = 'Resumen' | 'Dealers' | 'Usuarios' | 'Actividad' | 'Inicio' | 'Bandeja' | 'Contactos' | 'Oportunidades' | 'Automatizaciones' | 'Calendario' | 'Reportes' | 'Configuración'
 
 export type IconName = 'home' | 'inbox' | 'users' | 'pipeline' | 'automation' | 'calendar' | 'chart' | 'settings' | 'search' | 'plus' | 'arrow' | 'clock' | 'phone' | 'mail' | 'dots' | 'chevron' | 'close' | 'menu' | 'spark'
 
@@ -38,10 +38,8 @@ export const sectionTitles: Record<Section, string> = {
   Calendario: 'Calendario',
   Reportes: 'Reportes',
   Configuración: 'Configuración',
-  'Simulador Sofia': 'Simulador de conversaciones',
 }
 
-export function navigationFor(accountType: AccountType, localSimulatorEnabled = false): NavigationItem[] {
-  const items = accountType === 'admin' ? adminNavigation : dealerNavigation
-  return localSimulatorEnabled ? [...items, { name: 'Simulador Sofia', icon: 'spark', group: 'Pruebas locales' }] : items
+export function navigationFor(accountType: AccountType): NavigationItem[] {
+  return accountType === 'admin' ? adminNavigation : dealerNavigation
 }
