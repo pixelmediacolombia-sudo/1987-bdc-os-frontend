@@ -118,29 +118,47 @@ test('dealer start dashboard fits a desktop viewport without document scroll', a
     await expect(page.getByRole('button', { name: 'Nueva oportunidad' })).toBeInViewport()
     const layout = await page.evaluate(() => ({
       documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
+      contentOverflow: document.querySelector('.content')!.scrollHeight - document.querySelector('.content')!.clientHeight,
       leadListOverflow: document.querySelector('.lead-list')!.scrollHeight - document.querySelector('.lead-list')!.clientHeight,
       contentWidth: document.querySelector('.home-dashboard')!.getBoundingClientRect().width,
       mainWidth: document.querySelector('.main-column')!.getBoundingClientRect().width,
     }))
     expect(layout.documentOverflow, `document overflow at ${viewport.width}x${viewport.height}`).toBe(0)
+    expect(layout.contentOverflow, `content overflow at ${viewport.width}x${viewport.height}`).toBe(0)
     expect(layout.leadListOverflow, `contact list overflow at ${viewport.width}x${viewport.height}`).toBe(0)
     expect(layout.contentWidth).toBeGreaterThan(layout.mainWidth * 0.9)
     if (index === 0) await page.screenshot({ path: testInfo.outputPath('dashboard-no-scroll.png') })
   }
 
   await page.setViewportSize({ width: 1536, height: 730 })
+  const homeGeometry = await page.evaluate(() => ({
+    dashboardHeight: document.querySelector('.home-dashboard')!.getBoundingClientRect().height,
+    queueHeight: document.querySelector('.queue')!.getBoundingClientRect().height,
+    leadRowHeight: document.querySelector('.lead-row')!.getBoundingClientRect().height,
+  }))
+  const homeContentWidth = await page.locator('.content').evaluate((element) => element.clientWidth)
   await page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).click()
   await expect(page.locator('.breadcrumb strong')).toHaveText('Bandeja')
   const inboxLayout = await page.evaluate(() => ({
     documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
     shellHeight: document.querySelector('.app-shell')!.getBoundingClientRect().height,
     contentHeight: document.querySelector('.content')!.clientHeight,
+    contentWidth: document.querySelector('.content')!.clientWidth,
     viewportHeight: window.innerHeight,
   }))
   expect(inboxLayout.documentOverflow, 'document overflow in Bandeja').toBe(0)
   expect(inboxLayout.shellHeight).toBe(inboxLayout.viewportHeight)
   expect(inboxLayout.contentHeight).toBeGreaterThan(0)
+  expect(inboxLayout.contentWidth, 'content width shift in Bandeja').toBe(homeContentWidth)
   await page.screenshot({ path: testInfo.outputPath('inbox-no-document-scroll.png') })
+  await page.locator('.sidebar .nav-item').filter({ hasText: 'Inicio' }).click()
+  await expect(page.locator('.breadcrumb strong')).toHaveText('Inicio')
+  const homeGeometryAfterReturn = await page.evaluate(() => ({
+    dashboardHeight: document.querySelector('.home-dashboard')!.getBoundingClientRect().height,
+    queueHeight: document.querySelector('.queue')!.getBoundingClientRect().height,
+    leadRowHeight: document.querySelector('.lead-row')!.getBoundingClientRect().height,
+  }))
+  expect(homeGeometryAfterReturn, 'dashboard geometry changed after returning from Bandeja').toEqual(homeGeometry)
 })
 
 test('dealer users can browse, create, edit, and inspect contact history', async ({ page }, testInfo) => {
