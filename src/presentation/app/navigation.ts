@@ -2,7 +2,7 @@ import type { AccountType } from '../../domain/auth/auth-user'
 
 export type Section = 'Resumen' | 'Dealers' | 'Usuarios' | 'Actividad' | 'Inicio' | 'Bandeja' | 'Contactos' | 'Oportunidades' | 'Automatizaciones' | 'Calendario' | 'Reportes' | 'Configuración'
 
-export type IconName = 'home' | 'inbox' | 'users' | 'pipeline' | 'automation' | 'calendar' | 'chart' | 'settings' | 'search' | 'plus' | 'arrow' | 'clock' | 'phone' | 'mail' | 'dots' | 'chevron' | 'close' | 'menu' | 'spark'
+export type IconName = 'home' | 'inbox' | 'users' | 'pipeline' | 'target' | 'workflow' | 'calendar' | 'chart' | 'settings' | 'search' | 'plus' | 'arrow' | 'clock' | 'phone' | 'mail' | 'dots' | 'chevron' | 'close' | 'menu' | 'spark'
 
 export type NavigationItem = { name: Section; icon: IconName; group: string }
 
@@ -10,8 +10,8 @@ const dealerNavigation: NavigationItem[] = [
   { name: 'Inicio', icon: 'home', group: 'Trabajo' },
   { name: 'Bandeja', icon: 'inbox', group: 'Trabajo' },
   { name: 'Contactos', icon: 'users', group: 'Trabajo' },
-  { name: 'Oportunidades', icon: 'pipeline', group: 'Gestión' },
-  { name: 'Automatizaciones', icon: 'automation', group: 'Gestión' },
+  { name: 'Oportunidades', icon: 'target', group: 'Gestión' },
+  { name: 'Automatizaciones', icon: 'workflow', group: 'Gestión' },
   { name: 'Calendario', icon: 'calendar', group: 'Gestión' },
   { name: 'Reportes', icon: 'chart', group: 'Gestión' },
   { name: 'Configuración', icon: 'settings', group: 'Gestión' },
