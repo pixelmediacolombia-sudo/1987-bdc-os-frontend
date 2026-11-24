@@ -102,3 +102,12 @@ El backlog priorizado y listo para distribuir —incluye CAPI/Admin, brechas de 
 ## Límites y seguridad
 
 Esta nota no contiene tokens, IDs completos de datasets, connection strings ni payloads de leads. La respuesta `is_valid` es una observación puntual de Meta; un token válido puede dejar de serlo si se revoca. La auditoría no demuestra que un evento real haya sido recibido por Meta.
+
+## Validación ADM-07 local: 24 de noviembre de 2026
+
+- Se levantó el stack Docker local; los cinco servicios quedaron saludables. Frontend y `/health` del backend respondieron HTTP 200.
+- Playwright con Edge validó el directorio de usuarios contra la base local (1 prueba), la salud API/PostgreSQL/Redis y el bloqueo de salud global para rol dealer (2 pruebas), además de navegación Admin/dealer, directorio y cierre de sesión con APIs simuladas (5 pruebas).
+- `npm run test` pasó 27 pruebas; `npm run build` pasó. `npm run lint` terminó correctamente con advertencias existentes en `e2e/admin-system-health.spec.ts`, `DealerConfigurationPanel.tsx` y `AdminSystemHealth.tsx`.
+- Se corrigieron dos expectativas desactualizadas en `e2e/crm.spec.ts`: el título del directorio es “Usuarios y accesos” y la vuelta al resumen se hace desde la navegación Admin.
+- Evidencia local: `output/evidence/adm-06-salud-global-docker-2026-11-24.png` y `output/evidence/adm-07-directorio-usuarios-docker-2026-11-24.png`.
+- Esta validación fue solo local. No se publicó ni verificó el frontend en producción, no se leyó configuración secreta y no se modificó ni probó el envío de Meta CAPI en producción.
