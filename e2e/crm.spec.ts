@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { formatCurrentDate } from '../src/presentation/app/current-date'
 
 const email = process.env.BDC_E2E_ADMIN_EMAIL ?? 'admin@bdc-os.local'
 
@@ -86,6 +87,7 @@ test('dealer users keep their attention dashboard and sales tools', async ({ pag
   }))
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeVisible()
+  await expect(page.locator('.home-dashboard .eyebrow')).toHaveText(formatCurrentDate())
   await expect(page.getByText('Necesitan tu atención')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Nueva oportunidad' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Administración de dealers' })).toHaveCount(0)
