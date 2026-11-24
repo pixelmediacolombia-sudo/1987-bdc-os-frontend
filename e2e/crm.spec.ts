@@ -127,6 +127,20 @@ test('dealer start dashboard fits a desktop viewport without document scroll', a
     expect(layout.contentWidth).toBeGreaterThan(layout.mainWidth * 0.9)
     if (index === 0) await page.screenshot({ path: testInfo.outputPath('dashboard-no-scroll.png') })
   }
+
+  await page.setViewportSize({ width: 1536, height: 730 })
+  await page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).click()
+  await expect(page.locator('.breadcrumb strong')).toHaveText('Bandeja')
+  const inboxLayout = await page.evaluate(() => ({
+    documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
+    shellHeight: document.querySelector('.app-shell')!.getBoundingClientRect().height,
+    contentHeight: document.querySelector('.content')!.clientHeight,
+    viewportHeight: window.innerHeight,
+  }))
+  expect(inboxLayout.documentOverflow, 'document overflow in Bandeja').toBe(0)
+  expect(inboxLayout.shellHeight).toBe(inboxLayout.viewportHeight)
+  expect(inboxLayout.contentHeight).toBeGreaterThan(0)
+  await page.screenshot({ path: testInfo.outputPath('inbox-no-document-scroll.png') })
 })
 
 test('dealer users can browse, create, edit, and inspect contact history', async ({ page }, testInfo) => {

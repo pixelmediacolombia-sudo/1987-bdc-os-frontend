@@ -15,6 +15,7 @@ import { filterLeads, type Lead } from '../../domain/crm/lead'
 import type { AuthUser } from '../../domain/auth/auth-user'
 import { demoLeads } from '../../infrastructure/demo/leads'
 import '../styles/App.css'
+import '../styles/viewport-shell.css'
 import '../styles/home-dashboard.css'
 
 type DemoDealer = Dealer
