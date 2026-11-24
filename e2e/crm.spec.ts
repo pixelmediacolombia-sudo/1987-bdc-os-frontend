@@ -102,3 +102,46 @@ test('dealer users keep their attention dashboard and sales tools', async ({ pag
   await dialog.getByRole('button', { name: 'Crear en demo' }).click()
   await expect(page.getByText('Andrea Gómez')).toBeVisible()
 })
+
+test('dealer users can browse synthetic contacts and open their 360 read-only history', async ({ page }, testInfo) => {
+  const dealerId = '11111111-1111-4111-8111-111111111111'
+  const contactId = '33333333-3333-4333-8333-333333333333'
+  const contact = {
+    id: contactId, dealerId, providerContactId: 'meta-contact-e2e', phone: '+1 555 0100', email: 'buyer@example.test',
+    preferredLanguage: 'en', consentState: 'unknown', createdAt: '2026-11-24T10:00:00.000Z', updatedAt: '2026-11-24T10:00:00.000Z',
+    conversationCount: 1, lastActivity: '2026-11-24T10:00:00.000Z', channels: ['messenger'],
+  }
+  await page.route('**/backend/auth/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, user: { id: 'dealer-user-e2e', email: 'asesor@dealer.local', displayName: 'Asesor E2E', accountType: 'user' } }),
+  }))
+  await page.route('**/backend/auth/contacts/dealers', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer E2E' }] }),
+  }))
+  await page.route(/\/backend\/auth\/contacts\?/, (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ contacts: [contact], total: 1, limit: 50, offset: 0 }),
+  }))
+  await page.route(new RegExp('/backend/auth/contacts/' + contactId + '\\?'), (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ contact: { ...contact, conversations: [{ id: 'conversation-e2e', channel: 'messenger', owner: null, state: 'open', lastActivity: contact.lastActivity, messages: [{ id: 'message-e2e', direction: 'inbound', senderType: 'contact', content: 'Mensaje sintético para QA', createdAt: contact.lastActivity }] }] } }),
+  }))
+
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeVisible()
+  await page.getByRole('button', { name: 'Contactos' }).click()
+  await expect(page.getByRole('heading', { name: 'Directorio de contactos' })).toBeVisible()
+  await expect(page.getByText('+1 555 0100', { exact: true })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('contacts-directory.png'), fullPage: true })
+
+  await page.getByRole('button', { name: 'Abrir ficha de +1 555 0100' }).click()
+  await expect(page.getByRole('dialog', { name: '+1 555 0100' })).toBeVisible()
+  await expect(page.getByText('Mensaje sintético para QA')).toBeVisible()
+  await expect(page.getByText('La ficha es de solo lectura en esta entrega.')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('contact-360.png'), fullPage: true })
+})

@@ -33,15 +33,16 @@ test.afterAll(() => {
 })
 
 test('global admin sees filtered real user and invitation access from Docker', async ({ page }) => {
+  const searchTerm = 'ADM07'
   await page.context().addCookies([{ name: 'bdc_os_session', value: sessionToken, url: 'http://127.0.0.1:4173' }])
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Administración de dealers' })).toBeVisible()
   await page.getByRole('button', { name: 'Usuarios', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Usuarios y accesos' })).toBeVisible()
-  await page.getByRole('textbox', { name: 'Buscar', exact: true }).fill(`ADM07 ${stamp}`)
+  await page.getByRole('textbox', { name: 'Buscar', exact: true }).fill(searchTerm)
   const response = page.waitForResponse((item) => {
     if (!item.url().includes('/backend/auth/admin/users?')) return false
-    return new URL(item.url()).searchParams.get('search') === `ADM07 ${stamp}`
+    return new URL(item.url()).searchParams.get('search') === searchTerm
   })
   await page.getByRole('button', { name: 'Buscar', exact: true }).click()
   const usersResponse = await response
@@ -52,7 +53,7 @@ test('global admin sees filtered real user and invitation access from Docker', a
   const dealerFilteredResponse = page.waitForResponse((item) => {
     if (!item.url().includes('/backend/auth/admin/users?')) return false
     const query = new URL(item.url()).searchParams
-    return query.get('search') === `ADM07 ${stamp}` && query.get('dealerId') === dealerId
+    return query.get('search') === searchTerm && query.get('dealerId') === dealerId
   })
   await page.locator('.admin-user-filters select').nth(0).selectOption(dealerId)
   const dealerResponse = await dealerFilteredResponse
