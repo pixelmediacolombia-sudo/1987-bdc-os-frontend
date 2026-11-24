@@ -104,7 +104,7 @@ test('dealer users keep their attention dashboard and sales tools', async ({ pag
 })
 
 test('dealer start dashboard fits a desktop viewport without document scroll', async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 1920, height: 912 })
+  await page.setViewportSize({ width: 1536, height: 730 })
   await page.route('**/backend/auth/session', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -112,18 +112,21 @@ test('dealer start dashboard fits a desktop viewport without document scroll', a
   }))
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeVisible()
-  await expect(page.getByText('Mariana Ospina', { exact: true })).toBeInViewport()
-  await expect(page.getByRole('button', { name: 'Nueva oportunidad' })).toBeInViewport()
-  const layout = await page.evaluate(() => ({
-    documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
-    leadListOverflow: document.querySelector('.lead-list')!.scrollHeight - document.querySelector('.lead-list')!.clientHeight,
-    contentWidth: document.querySelector('.home-dashboard')!.getBoundingClientRect().width,
-    mainWidth: document.querySelector('.main-column')!.getBoundingClientRect().width,
-  }))
-  expect(layout.documentOverflow).toBe(0)
-  expect(layout.leadListOverflow).toBe(0)
-  expect(layout.contentWidth).toBeGreaterThan(layout.mainWidth * 0.9)
-  await page.screenshot({ path: testInfo.outputPath('dashboard-no-scroll.png') })
+  for (const [index, viewport] of [{ width: 1536, height: 730 }, { width: 1920, height: 912 }].entries()) {
+    await page.setViewportSize(viewport)
+    await expect(page.getByText('Mariana Ospina', { exact: true })).toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Nueva oportunidad' })).toBeInViewport()
+    const layout = await page.evaluate(() => ({
+      documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
+      leadListOverflow: document.querySelector('.lead-list')!.scrollHeight - document.querySelector('.lead-list')!.clientHeight,
+      contentWidth: document.querySelector('.home-dashboard')!.getBoundingClientRect().width,
+      mainWidth: document.querySelector('.main-column')!.getBoundingClientRect().width,
+    }))
+    expect(layout.documentOverflow, `document overflow at ${viewport.width}x${viewport.height}`).toBe(0)
+    expect(layout.leadListOverflow, `contact list overflow at ${viewport.width}x${viewport.height}`).toBe(0)
+    expect(layout.contentWidth).toBeGreaterThan(layout.mainWidth * 0.9)
+    if (index === 0) await page.screenshot({ path: testInfo.outputPath('dashboard-no-scroll.png') })
+  }
 })
 
 test('dealer users can browse, create, edit, and inspect contact history', async ({ page }, testInfo) => {

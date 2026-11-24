@@ -1,5 +1,5 @@
 /* Fit the dealer start dashboard in a standard desktop viewport. */
-@media (min-width: 1181px) and (min-height: 760px) {
+@media (min-width: 1181px) and (min-height: 680px) {
   .app-shell--home {
     height: 100dvh;
     min-height: 0;
@@ -168,5 +168,98 @@
     min-height: 12px;
     align-items: center;
     margin-top: 0;
+  }
+}
+
+@media (min-width: 1181px) and (min-height: 680px) and (max-height: 759px) {
+  .app-shell--home .content--home {
+    padding: 9px 24px 7px;
+  }
+
+  .home-dashboard {
+    gap: 8px;
+  }
+
+  .home-dashboard .page-heading h1 {
+    font-size: 22px;
+  }
+
+  .home-dashboard .page-heading .eyebrow {
+    margin-bottom: 2px;
+  }
+
+  .home-dashboard .subtitle {
+    margin-top: 3px;
+  }
+
+  .home-dashboard .metrics {
+    gap: 10px;
+  }
+
+  .home-dashboard .metric {
+    min-height: 108px;
+    padding: 9px 11px 8px;
+  }
+
+  .home-dashboard .metric-number {
+    margin-top: 6px;
+  }
+
+  .home-dashboard .small-number {
+    margin: 8px 0 2px;
+    font-size: 25px;
+  }
+
+  .home-dashboard .content-grid {
+    gap: 10px;
+  }
+
+  .home-dashboard .panel-heading,
+  .home-dashboard .panel-heading.compact {
+    padding: 9px 12px 7px;
+  }
+
+  .home-dashboard .filter-row {
+    margin-inline: 12px;
+    padding: 5px 0;
+  }
+
+  .home-dashboard .lead-list {
+    grid-auto-rows: minmax(52px, 1fr);
+    padding-inline: 12px;
+  }
+
+  .home-dashboard .lead-row {
+    min-height: 52px;
+    padding: 5px 0;
+  }
+
+  .home-dashboard .lead-avatar {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .home-dashboard .queue-footer {
+    width: calc(100% - 24px);
+    margin-inline: 12px;
+    padding: 6px 0;
+  }
+
+  .home-dashboard .side-column {
+    grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 9px;
+  }
+
+  .home-dashboard .next-copy {
+    padding: 0 12px 9px;
+  }
+
+  .home-dashboard .activity-list {
+    padding: 0 12px 7px;
+  }
+
+  .home-dashboard .activity-item {
+    padding: 3px 0;
   }
 }
