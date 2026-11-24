@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+ARG VITE_LOCAL_SOFIA_SIMULATOR=false
+ENV VITE_LOCAL_SOFIA_SIMULATOR=$VITE_LOCAL_SOFIA_SIMULATOR
 RUN npm run build
 
 FROM nginx:alpine

@@ -120,6 +120,37 @@ describe('BDC OS CRM first screen', () => {
     expect(fetchMock).toHaveBeenCalledWith('/backend/auth/contacts?dealerId=dealer-1&limit=50&offset=0', expect.any(Object))
   })
 
+  it('runs a synthetic Sofia turn through the local backend simulator', async () => {
+    const user = userEvent.setup()
+    const turn = {
+      conversationId: 'local-conversation-1',
+      contact: { name: 'Andrea Demo', providerContactId: 'local-contact-1' },
+      messages: [
+        { id: 'message-1', direction: 'inbound', content: 'Busco una SUV Toyota RAV4.', createdAt: '2026-11-24T15:00:00.000Z' },
+        { id: 'message-2', direction: 'outbound', content: 'Con gusto le ayudo. ¿Qué presupuesto tiene previsto para el enganche?', createdAt: '2026-11-24T15:00:01.000Z' },
+      ],
+      sofia: { response: 'Con gusto le ayudo. ¿Qué presupuesto tiene previsto para el enganche?', facts: { vehicle_category: 'suv' }, leadLevel: 'C', nextStep: 'ask' },
+      openai: { status: 'ok', extraction: { facts: { vehicle_category: 'suv' }, intent: 'vehicle_inquiry', missingFields: ['down_payment_declared'] }, modelFacts: { vehicle_category: 'suv' }, safetyIssues: [], responseSource: 'deterministic_rule' },
+    }
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/auth/local/sofia-simulator/status')) return Promise.resolve(jsonResponse({ enabled: true, localOnly: true, sendsMessages: false, contactName: 'Andrea Demo', modelMode: 'OpenAI interpreta; Sofia responde con reglas.', modelHost: 'api.openai.com' }))
+      if (url.endsWith('/auth/local/sofia-simulator/turn')) return Promise.resolve(jsonResponse(turn))
+      return Promise.resolve(jsonResponse({ authenticated: true, user: localUser }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Tu operación, en un solo lugar' })
+    await user.click(screen.getByRole('button', { name: 'Simulador Sofia' }))
+    expect(await screen.findByRole('heading', { name: 'Simulador de conversaciones' })).toBeTruthy()
+    expect(await screen.findByText(/Host del modelo: api.openai.com/)).toBeTruthy()
+    await user.type(screen.getByLabelText('Mensaje del contacto simulado'), 'Busco una SUV Toyota RAV4.')
+    await user.click(screen.getByRole('button', { name: 'Enviar turno local' }))
+    expect(await screen.findByText(turn.sofia.response)).toBeTruthy()
+    expect(screen.getByText('Tipo de vehículo')).toBeTruthy()
+    expect(fetchMock).toHaveBeenCalledWith('/backend/auth/local/sofia-simulator/turn', expect.objectContaining({ method: 'POST' }))
+  })
+
   it('shows the login screen when there is no active session', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ authenticated: false }, 401)))
     render(<App />)
