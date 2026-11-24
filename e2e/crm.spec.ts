@@ -103,6 +103,29 @@ test('dealer users keep their attention dashboard and sales tools', async ({ pag
   await expect(page.getByText('Andrea Gómez')).toBeVisible()
 })
 
+test('dealer start dashboard fits a desktop viewport without document scroll', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1920, height: 912 })
+  await page.route('**/backend/auth/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, user: { id: 'dealer-user-layout', email: 'layout@dealer.local', displayName: 'Asesor Layout', accountType: 'user' } }),
+  }))
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeVisible()
+  await expect(page.getByText('Mariana Ospina', { exact: true })).toBeInViewport()
+  await expect(page.getByRole('button', { name: 'Nueva oportunidad' })).toBeInViewport()
+  const layout = await page.evaluate(() => ({
+    documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
+    leadListOverflow: document.querySelector('.lead-list')!.scrollHeight - document.querySelector('.lead-list')!.clientHeight,
+    contentWidth: document.querySelector('.home-dashboard')!.getBoundingClientRect().width,
+    mainWidth: document.querySelector('.main-column')!.getBoundingClientRect().width,
+  }))
+  expect(layout.documentOverflow).toBe(0)
+  expect(layout.leadListOverflow).toBe(0)
+  expect(layout.contentWidth).toBeGreaterThan(layout.mainWidth * 0.9)
+  await page.screenshot({ path: testInfo.outputPath('dashboard-no-scroll.png') })
+})
+
 test('dealer users can browse, create, edit, and inspect contact history', async ({ page }, testInfo) => {
   const dealerId = '11111111-1111-4111-8111-111111111111'
   const contactId = '33333333-3333-4333-8333-333333333333'

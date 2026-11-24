@@ -1,0 +1,172 @@
+/* Fit the dealer start dashboard in a standard desktop viewport. */
+@media (min-width: 1181px) and (min-height: 760px) {
+  .app-shell--home {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-shell--home .sidebar {
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .app-shell--home .main-column {
+    display: flex;
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app-shell--home .topbar {
+    flex: 0 0 64px;
+  }
+
+  .app-shell--home .content {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    flex: 1;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .app-shell--home .content--home {
+    height: 100%;
+    padding: 16px 30px 10px;
+  }
+
+  .home-dashboard {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 11px;
+  }
+
+  .home-dashboard .page-heading {
+    align-items: center;
+    margin: 0;
+  }
+
+  .home-dashboard .page-heading h1 {
+    font-size: 24px;
+  }
+
+  .home-dashboard .page-heading .eyebrow {
+    margin-bottom: 4px;
+  }
+
+  .home-dashboard .subtitle {
+    margin-top: 5px;
+  }
+
+  .home-dashboard .metrics {
+    gap: 12px;
+    margin: 0;
+  }
+
+  .home-dashboard .metric {
+    min-height: 124px;
+    padding: 11px 14px 10px;
+  }
+
+  .home-dashboard .metric-number {
+    margin-top: 8px;
+  }
+
+  .home-dashboard .small-number {
+    margin: 10px 0 2px;
+    font-size: 27px;
+  }
+
+  .home-dashboard .potential {
+    margin: 7px 0 6px;
+  }
+
+  .home-dashboard .content-grid {
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .home-dashboard .queue {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .home-dashboard .panel-heading {
+    padding: 12px 16px 9px;
+  }
+
+  .home-dashboard .filter-row {
+    margin-inline: 16px;
+    padding: 7px 0;
+  }
+
+  .home-dashboard .lead-list {
+    display: grid;
+    min-height: 0;
+    flex: 1;
+    grid-auto-rows: minmax(58px, 1fr);
+    padding-inline: 16px;
+    overflow-y: auto;
+  }
+
+  .home-dashboard .lead-row {
+    min-height: 58px;
+    padding: 7px 0;
+  }
+
+  .home-dashboard .lead-avatar {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+
+  .home-dashboard .queue-footer {
+    width: calc(100% - 32px);
+    margin-inline: 16px;
+    padding: 8px 0;
+  }
+
+  .home-dashboard .side-column {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 11px;
+  }
+
+  .home-dashboard .side-column > .panel {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .home-dashboard .panel-heading.compact {
+    padding: 12px 16px 9px;
+  }
+
+  .home-dashboard .next-copy {
+    padding: 0 16px 12px;
+  }
+
+  .home-dashboard .activity-list {
+    padding: 0 16px 9px;
+  }
+
+  .home-dashboard .activity-item {
+    padding: 5px 0;
+  }
+
+  .home-dashboard .disclaimer {
+    min-height: 12px;
+    align-items: center;
+    margin-top: 0;
+  }
+}

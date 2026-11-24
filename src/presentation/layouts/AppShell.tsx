@@ -24,7 +24,7 @@ export default function AppShell({ user, active, navigation, search, isAdmin, ch
     setMobileNavOpen(false)
   }
 
-  return <div className="app-shell">
+  return <div className={`app-shell ${active === 'Inicio' ? 'app-shell--home' : ''}`}>
     {mobileNavOpen && <button className="scrim" aria-label="Cerrar navegación" onClick={() => setMobileNavOpen(false)} />}
     <aside className={`sidebar ${mobileNavOpen ? 'sidebar--open' : ''}`}>
       <a href="#inicio" className="brand" onClick={(event) => { event.preventDefault(); navigate(isAdmin ? 'Resumen' : 'Inicio') }} aria-label="BDC OS CRM inicio"><img src="/bdc-os-crm.png" alt="BDC OS CRM" /></a>
@@ -34,7 +34,7 @@ export default function AppShell({ user, active, navigation, search, isAdmin, ch
     </aside>
     <div className="main-column">
       <header className="topbar"><button className="mobile-menu" aria-label="Abrir navegación" onClick={() => setMobileNavOpen(true)}><Icon name="menu" /></button><div className="breadcrumb"><span>{isAdmin ? 'Administración' : 'Espacio de trabajo'}</span><i>/</i><strong>{active}</strong></div><label className="search"><Icon name="search" size={16} /><input value={search} onChange={(event) => onSearch(event.target.value)} placeholder={isAdmin ? 'Buscar dealer o ID' : 'Buscar contactos'} aria-label={isAdmin ? 'Buscar dealers o ID' : 'Buscar en el CRM'} /><kbd>⌘ K</kbd></label><span className="demo-tag"><i /> {isAdmin ? 'Panel global' : 'Entorno de prueba'}</span><button className="top-avatar" aria-label={`Perfil de ${user.displayName}`} onClick={() => navigate('Configuración')}>{userInitials}</button></header>
-      <main className="content">{children}</main>
+      <main className={`content ${active === 'Inicio' ? 'content--home' : ''}`}>{children}</main>
     </div>
   </div>
 }
