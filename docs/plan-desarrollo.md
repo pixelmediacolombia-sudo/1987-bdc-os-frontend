@@ -7,7 +7,7 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-00 · Entorno local e identidad | Compose aislado; PostgreSQL y Redis; cuentas `admin`/`user`; un admin global; usuarios vinculados a dealers (`tenants`); hash de contraseña de prueba en `.env` local | Servicios saludables; el admin se crea una vez desde `.env`; secretos fuera de Git |
 | FE-01 · Shell CRM | Navegación, espacio de trabajo, búsqueda, dashboard, cola de atención y estados de demostración | Responsive; acciones demo funcionan; datos ficticios claramente identificados |
 | FE-02 · Acceso y empresas | Inicio de sesión, sesiones seguras, invitación/creación de usuarios y asignación a dealer; permisos del admin global y separación por tenant | Pruebas de autorización y aislamiento entre dos tenants |
-| FE-03 · Contactos y bandeja | Contratos backend para contactos, conversaciones y mensajes; lectura primero, escritura luego | Contratos tenant-scoped y pruebas API/UI con fixtures locales |
+| FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición e historial; después bandeja CRM-02 | Contactos con permisos, auditoría, paginación y pruebas Docker locales; bandeja de escritura pendiente |
 | FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Crear/mover/actualizar oportunidades con auditoría y pruebas e2e |
 | FE-05 · Automatizaciones | Editor de flujos, disparadores, condiciones, acciones, ejecución y logs | Simulación local; idempotencia; fallas y reintentos cubiertos |
 | FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |

@@ -103,45 +103,69 @@ test('dealer users keep their attention dashboard and sales tools', async ({ pag
   await expect(page.getByText('Andrea Gómez')).toBeVisible()
 })
 
-test('dealer users can browse synthetic contacts and open their 360 read-only history', async ({ page }, testInfo) => {
+test('dealer users can browse, create, edit, and inspect contact history', async ({ page }, testInfo) => {
   const dealerId = '11111111-1111-4111-8111-111111111111'
   const contactId = '33333333-3333-4333-8333-333333333333'
-  const contact = {
-    id: contactId, dealerId, providerContactId: 'meta-contact-e2e', phone: '+1 555 0100', email: 'buyer@example.test',
+  const manualId = '44444444-4444-4444-8444-444444444444'
+  let contact = {
+    id: contactId, dealerId, providerContactId: 'meta-contact-e2e', displayName: 'Buyer E2E', source: 'meta', phone: '+1 555 0100', email: 'buyer@example.test',
     preferredLanguage: 'en', consentState: 'unknown', createdAt: '2026-11-24T10:00:00.000Z', updatedAt: '2026-11-24T10:00:00.000Z',
     conversationCount: 1, lastActivity: '2026-11-24T10:00:00.000Z', channels: ['messenger'],
   }
+  let manual: typeof contact | null = null
   await page.route('**/backend/auth/session', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({ authenticated: true, user: { id: 'dealer-user-e2e', email: 'asesor@dealer.local', displayName: 'Asesor E2E', accountType: 'user' } }),
   }))
-  await page.route('**/backend/auth/contacts/dealers', (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer E2E' }] }),
-  }))
-  await page.route(/\/backend\/auth\/contacts\?/, (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ contacts: [contact], total: 1, limit: 50, offset: 0 }),
-  }))
-  await page.route(new RegExp('/backend/auth/contacts/' + contactId + '\\?'), (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ contact: { ...contact, conversations: [{ id: 'conversation-e2e', channel: 'messenger', owner: null, state: 'open', lastActivity: contact.lastActivity, messages: [{ id: 'message-e2e', direction: 'inbound', senderType: 'contact', content: 'Mensaje sintético para QA', createdAt: contact.lastActivity }] }] } }),
-  }))
+  await page.route('**/backend/auth/contacts**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (url.pathname.endsWith('/contacts/dealers')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer E2E' }] }) })
+    if (request.method() === 'POST' && url.pathname.endsWith('/contacts')) {
+      manual = { id: manualId, dealerId, providerContactId: 'manual:local-e2e', displayName: 'Andrea Gómez', source: 'manual', phone: '+1 555 0101', email: null, preferredLanguage: 'unknown', consentState: 'unknown', createdAt: '2026-11-24T11:00:00.000Z', updatedAt: '2026-11-24T11:00:00.000Z', conversationCount: 0, lastActivity: null, channels: [] }
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ contact: manual }) })
+    }
+    if (request.method() === 'PATCH' && url.pathname.endsWith('/' + manualId)) {
+      manual = { ...manual!, displayName: 'Andrea Gómez Editada' }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ contact: manual }) })
+    }
+    if (request.method() === 'GET' && url.pathname.endsWith('/contacts')) {
+      const contacts = manual ? [contact, manual] : [contact]
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ contacts, total: contacts.length, limit: 25, offset: Number(url.searchParams.get('offset') ?? 0) }) })
+    }
+    if (request.method() === 'GET' && url.pathname.endsWith('/' + contactId)) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ contact: { ...contact, conversations: [{ id: 'conversation-e2e', channel: 'messenger', owner: null, state: 'open', lastActivity: contact.lastActivity, messages: [{ id: 'message-e2e', direction: 'inbound', senderType: 'contact', content: 'Mensaje sintético para QA', createdAt: contact.lastActivity }] }] } }) })
+    }
+    if (request.method() === 'GET' && url.pathname.endsWith('/' + manualId)) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ contact: { ...manual!, conversations: [] } }) })
+    }
+    return route.fallback()
+  })
 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeVisible()
   await page.getByRole('button', { name: 'Contactos' }).click()
   await expect(page.getByRole('heading', { name: 'Directorio de contactos' })).toBeVisible()
-  await expect(page.getByText('+1 555 0100', { exact: true })).toBeVisible()
+  await expect(page.getByText('Buyer E2E', { exact: true })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('contacts-directory.png'), fullPage: true })
 
-  await page.getByRole('button', { name: 'Abrir ficha de +1 555 0100' }).click()
-  await expect(page.getByRole('dialog', { name: '+1 555 0100' })).toBeVisible()
+  await page.getByRole('button', { name: 'Abrir ficha de Buyer E2E' }).click()
+  await expect(page.getByRole('dialog', { name: 'Buyer E2E' })).toBeVisible()
   await expect(page.getByText('Mensaje sintético para QA')).toBeVisible()
-  await expect(page.getByText('La ficha es de solo lectura en esta entrega.')).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('contact-360.png'), fullPage: true })
+  await page.getByRole('button', { name: 'Cerrar ficha' }).click()
+
+  await page.getByRole('button', { name: 'Nuevo contacto' }).click()
+  const editor = page.getByRole('dialog', { name: 'Nuevo contacto' })
+  await editor.getByLabel('Nombre').fill('Andrea Gómez')
+  await editor.getByLabel('Teléfono').fill('+1 555 0101')
+  await editor.getByRole('button', { name: 'Crear contacto' }).click()
+  await expect(page.getByRole('dialog', { name: 'Andrea Gómez' })).toBeVisible()
+  await expect(page.getByText('Registro manual · Sin conexión a Meta')).toBeVisible()
+  await page.getByRole('button', { name: 'Editar' }).click()
+  const edit = page.getByRole('dialog', { name: 'Editar contacto' })
+  await edit.getByLabel('Nombre').fill('Andrea Gómez Editada')
+  await edit.getByRole('button', { name: 'Guardar cambios' }).click()
+  await expect(page.getByRole('dialog', { name: 'Andrea Gómez Editada' })).toBeVisible()
 })

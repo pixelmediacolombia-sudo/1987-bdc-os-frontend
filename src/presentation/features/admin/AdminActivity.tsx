@@ -11,6 +11,7 @@ const categories: Array<{ value: AuditCategory | 'all'; label: string }> = [
   { value: 'invitations', label: 'Invitaciones' },
   { value: 'settings', label: 'Configuración' },
   { value: 'security', label: 'Seguridad' },
+  { value: 'contacts', label: 'Contactos' },
 ]
 
 const actionLabels: Record<string, string> = {
@@ -18,6 +19,8 @@ const actionLabels: Record<string, string> = {
   'dealer.deleted': 'Dealer eliminado',
   'invitation.created': 'Invitación enviada',
   'invitation.accepted': 'Invitación aceptada',
+  'contact.created': 'Contacto creado',
+  'contact.updated': 'Contacto actualizado',
 }
 
 function formatDate(value: string) {

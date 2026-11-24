@@ -4,6 +4,8 @@ export type ContactSummary = {
   id: string
   dealerId: string
   providerContactId: string
+  displayName: string | null
+  source: 'meta' | 'manual'
   phone: string | null
   email: string | null
   preferredLanguage: string
@@ -36,8 +38,16 @@ export type ContactDetail = Omit<ContactSummary, 'conversationCount' | 'lastActi
   conversations: ContactConversation[]
 }
 
-export function contactLabel(contact: Pick<ContactSummary, 'phone' | 'email'>): string {
-  return contact.phone || contact.email || 'Contacto sin nombre'
+export type ContactInput = {
+  dealerId?: string
+  displayName: string
+  phone: string | null
+  email: string | null
+  preferredLanguage: string | null
+}
+
+export function contactLabel(contact: Pick<ContactSummary, 'phone' | 'email' | 'displayName'>): string {
+  return contact.displayName?.trim() || contact.phone || contact.email || 'Contacto sin nombre'
 }
 
 export function contactReference(providerContactId: string): string {

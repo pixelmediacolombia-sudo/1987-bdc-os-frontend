@@ -45,5 +45,11 @@ export const appServices = {
   configuration: { getDealer: new GetDealerConfiguration(configurationRepository) },
   systemHealth: { get: new GetSystemHealth(systemHealthRepository) },
   adminUsers: { list: new ListAdminUsers(adminUserRepository) },
-  contacts: { listDealers: () => contactRepository.listDealers(), list: (dealerId: string, search: string) => contactRepository.list(dealerId, search), get: (dealerId: string, contactId: string) => contactRepository.get(dealerId, contactId) },
+  contacts: {
+    listDealers: () => contactRepository.listDealers(),
+    list: (dealerId: string, filters: import('../infrastructure/contacts/http-contact-repository').ContactFilters) => contactRepository.list(dealerId, filters),
+    get: (dealerId: string, contactId: string) => contactRepository.get(dealerId, contactId),
+    create: (input: import('../domain/contact/contact').ContactInput) => contactRepository.create(input),
+    update: (dealerId: string, contactId: string, input: Omit<import('../domain/contact/contact').ContactInput, 'dealerId'>) => contactRepository.update(dealerId, contactId, input),
+  },
 }

@@ -1,4 +1,4 @@
-export type AuditCategory = 'dealers' | 'users' | 'invitations' | 'settings' | 'security'
+export type AuditCategory = 'dealers' | 'users' | 'invitations' | 'settings' | 'security' | 'contacts'
 
 export type AuditEvent = {
   id: string

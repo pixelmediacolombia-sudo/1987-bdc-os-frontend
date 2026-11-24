@@ -91,11 +91,11 @@ Producto/Seguridad decide si el admin global único es suficiente. Si se requier
 
 ## Fichas de trabajo: CRM
 
-En el frontend, Inicio muestra datos ficticios y no consulta el backend; crear una oportunidad solo cambia memoria de sesión. Bandeja, Contactos, Oportunidades, Automatizaciones, Calendario y Reportes se presentan hoy como vistas por construir, sin endpoints conectados. Las historias CRM no deben considerarse implementadas porque aparezcan en el menú.
+En el frontend, Inicio muestra datos ficticios y no consulta el backend; crear una oportunidad solo cambia memoria de sesión. Contactos cuenta ahora con una primera implementación local de CRM-01 y su API tenant-scoped; falta completar la ficha de actividad/oportunidades y la prueba E2E persistida. Bandeja, Oportunidades, Automatizaciones, Calendario y Reportes siguen como vistas por construir. Las historias CRM no deben considerarse implementadas porque aparezcan en el menú.
 
 ### CRM-01 — Contactos y ficha 360 (P2)
 
-Contrato tenant-scoped para buscar/listar/crear/actualizar contactos; campos, consentimiento y canales de origen definidos; timeline de conversaciones, actividad y oportunidades; resolución de duplicados sin fusionar identidades automáticamente. Aceptación: permisos entre dealers probados, cambios auditables, paginación/filtros y prueba E2E persistida.
+Estado 2026-11-24: primera entrega local. El directorio busca, filtra por canal/consentimiento, ordena y pagina; la ficha muestra datos editables, origen, consentimiento de solo lectura e historial de conversaciones. La API permite crear registros manuales y editar datos de contacto dentro del tenant, audita cambios y rechaza duplicados manuales por teléfono/correo sin fusionar identidades. Pendiente: timeline de actividad/oportunidades, prueba E2E con persistencia y verificación en un entorno desplegado. No se usaron contactos reales ni Meta.
 
 ### CRM-02 — Bandeja omnicanal (P2)
 

@@ -3,9 +3,10 @@ import { contactInitials, contactLabel, contactReference } from './contact'
 
 describe('contact presentation helpers', () => {
   it('uses available contact details without inventing a person name', () => {
-    expect(contactLabel({ phone: '+1 555 0100', email: null })).toBe('+1 555 0100')
-    expect(contactLabel({ phone: null, email: 'buyer@example.test' })).toBe('buyer@example.test')
-    expect(contactLabel({ phone: null, email: null })).toBe('Contacto sin nombre')
+    expect(contactLabel({ displayName: null, phone: '+1 555 0100', email: null })).toBe('+1 555 0100')
+    expect(contactLabel({ displayName: null, phone: null, email: 'buyer@example.test' })).toBe('buyer@example.test')
+    expect(contactLabel({ displayName: null, phone: null, email: null })).toBe('Contacto sin nombre')
+    expect(contactLabel({ displayName: 'María Gómez', phone: '+1 555 0100', email: null })).toBe('María Gómez')
   })
 
   it('keeps long provider ids readable while preserving a recognizable reference', () => {

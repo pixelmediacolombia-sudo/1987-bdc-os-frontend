@@ -93,10 +93,10 @@ describe('BDC OS CRM first screen', () => {
     expect(screen.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeTruthy()
   })
 
-  it('loads the dealer contact directory and read-only 360 detail from scoped APIs', async () => {
+  it('loads the dealer contact directory and 360 detail from scoped APIs', async () => {
     const user = userEvent.setup()
     const contact = {
-      id: 'contact-1', dealerId: 'dealer-1', providerContactId: 'meta-contact-1', phone: '+1 555 0100', email: 'buyer@example.test',
+      id: 'contact-1', dealerId: 'dealer-1', providerContactId: 'meta-contact-1', displayName: null, source: 'meta', phone: '+1 555 0100', email: 'buyer@example.test',
       preferredLanguage: 'en', consentState: 'unknown', createdAt: '2026-11-24T10:00:00.000Z', updatedAt: '2026-11-24T10:00:00.000Z',
       conversationCount: 1, lastActivity: '2026-11-24T10:00:00.000Z', channels: ['messenger'],
     }
@@ -104,7 +104,7 @@ describe('BDC OS CRM first screen', () => {
       const url = String(input)
       if (url.endsWith('/auth/contacts/dealers')) return Promise.resolve(jsonResponse({ dealers: [{ id: 'dealer-1', name: 'Dealer de prueba' }] }))
       if (url.includes('/auth/contacts/contact-1?')) return Promise.resolve(jsonResponse({ contact: { ...contact, conversations: [{ id: 'conversation-1', channel: 'messenger', owner: null, state: 'open', lastActivity: contact.lastActivity, messages: [{ id: 'message-1', direction: 'inbound', senderType: 'contact', content: 'Consulta sintética de prueba', createdAt: contact.lastActivity }] }] } }))
-      if (url.includes('/auth/contacts?')) return Promise.resolve(jsonResponse({ contacts: [contact], total: 1, limit: 50, offset: 0 }))
+      if (url.includes('/auth/contacts?')) return Promise.resolve(jsonResponse({ contacts: [contact], total: 1, limit: 25, offset: 0 }))
       return Promise.resolve(jsonResponse({ authenticated: true, user: localUser }))
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -113,11 +113,11 @@ describe('BDC OS CRM first screen', () => {
     await user.click(screen.getByRole('button', { name: 'Contactos' }))
 
     expect(await screen.findByRole('heading', { name: 'Directorio de contactos' })).toBeTruthy()
-    expect(await screen.findByText('+1 555 0100')).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Abrir ficha de +1 555 0100' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Abrir ficha de +1 555 0100' }))
     expect(await screen.findByRole('dialog', { name: '+1 555 0100' })).toBeTruthy()
     expect(screen.getByText('Consulta sintética de prueba')).toBeTruthy()
-    expect(fetchMock).toHaveBeenCalledWith('/backend/auth/contacts?dealerId=dealer-1&limit=50&offset=0', expect.any(Object))
+    expect(fetchMock).toHaveBeenCalledWith('/backend/auth/contacts?dealerId=dealer-1&limit=25&offset=0&sort=recent', expect.any(Object))
   })
 
   it('shows the login screen when there is no active session', async () => {
