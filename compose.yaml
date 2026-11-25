@@ -40,7 +40,8 @@ services:
       SMTP_SECURE: "false"
       SMTP_FROM_EMAIL: no-reply@bdc-os.local
       SMTP_FROM_NAME: BDC OS
-      DATABASE_URL: postgresql://bdc_local:bdc_local_only_not_for_production@postgres:5432/bdc_os_local
+      DATABASE_URL: postgresql://bdc:bdc_runtime_local_only@postgres:5432/bdc_os_local
+      DATABASE_MIGRATION_URL: postgresql://bdc_local:bdc_local_only_not_for_production@postgres:5432/bdc_os_local
       PGSSL: "false"
       REDIS_URL: redis://redis:6379
       META_APP_SECRET: local-meta-app-secret-for-tests-only
