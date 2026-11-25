@@ -26,7 +26,7 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 | ADM-10 | P1 | Backend + Frontend + QA | Diseñar controles, alertas y límites de plataforma con auditoría | Pendiente de reglas y responsables |
 | ADM-11 | P1 | Backend + Frontend + QA | Políticas versionadas y overrides aislados por dealer | Pendiente; extensión del plan ADM-05 |
 | ADM-12 | P1 | Producto + Seguridad + Backend | Decidir cuentas de soporte, roles y permisos | Pendiente de decisión de negocio |
-| REA-02 | P1 | REA + Backend + QA | Ampliar el mapa de backend más allá de `identity` | Pendiente; análisis actual no cubrió todo el backend |
+| REA-02 | P1 | REA + Backend + QA | Ampliar el mapa de backend más allá de `identity` | En curso local; mapa estático parcial y artefacto `dist` no conciliado con `master`; ver `docs/rea-02-backend-local-2026-11-25.md` |
 | REA-03 | P1 | REA + Producto | Comparar configuración real de GHL con BDC OS | Pendiente de acceso observacional autorizado a GHL |
 | CRM-01 | P2 | Frontend + Backend | Contactos y ficha 360 con historial persistido por tenant | Placeholder frontend; requiere contrato y API |
 | CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | Placeholder frontend; definir eventos y operación |
