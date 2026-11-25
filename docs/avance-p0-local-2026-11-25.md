@@ -23,13 +23,12 @@ Matriz anonimizada del Docker local (los alias son temporales y no corresponden 
 
 | Tenant local | Nombre presente | CAPI activo | Dataset presente | Credencial cifrada presente | Código de prueba presente | Señal de calificación activa |
 |---|---:|---:|---:|---:|---:|---:|
-| local-1 | No | No | No | No | No | Sí |
-| local-2 | Sí | No | No | No | No | No |
+| local-1 | Sí | No | No | No | No | No |
 
-- Auditoría local repetida el 25/11: el runtime informa `QUALIFICATION_SIGNAL_ENABLED=false`, `META_CAPI_DEALERS_JSON` ausente y cero dealers configurados por entorno. El worker está apagado. `META_APP_SECRET` y `META_WEBHOOK_VERIFY_TOKEN` están presentes en el contenedor local, pero no se leyeron sus valores; ninguno sustituye el dataset y token CAPI por tenant. En ambos tenants también falta el código de evento de prueba.
-- La cola local contiene 3 eventos `LeadSubmitted` pendientes, todos asociados a `qualification_completed` y agrupados en `local-1`, creados el 20/11. Ese tenant tiene señal de calificación activa, pero CAPI desactivado y sin dataset ni credencial cifrada. Los tres tienen `attempts=0` y `claimed_at` vacío: no fueron reclamados ni enviados. No se leyeron IDs ni payloads, y no se borraron los eventos por falta de prueba de procedencia. Con el worker apagado y `meta_capi_enabled=false`, el guard actual impide que se reclamen para envío.
+- Auditoría local repetida el 25/11: el runtime informa `QUALIFICATION_SIGNAL_ENABLED=false`, `META_CAPI_DEALERS_JSON` ausente y cero dealers configurados por entorno. El worker está apagado. `META_APP_SECRET` y `META_WEBHOOK_VERIFY_TOKEN` están presentes en el contenedor local, pero no se leyeron sus valores; ninguno sustituye el dataset y token CAPI por tenant. El único tenant restante tampoco tiene código de evento de prueba.
+- Se hallaron 3 eventos `LeadSubmitted` pendientes asociados a `qualification_completed` y creados el 20/11. Su tenant y contactos coinciden con el fixture fijo `shared-dealer-whatsapp.local.e2e.test.ts` (`meta-test-contact-shared-dealer-local-*`); tenían `attempts=0` y `claimed_at` vacío. Se corrigió el `finally` del E2E para limpiar el fixture en ejecuciones futuras y se eliminó el tenant de prueba actual por cascada. La verificación posterior devolvió `tenants=1`, `capi_events=0` y contactos del fixture `=0`. No se leyeron payloads ni se enviaron eventos.
 - El mapeo operativo por tenant y la presencia cifrada de credenciales siguen pendientes de una fuente local autorizada. Esta revisión no reconcilia aliases ni valores de producción.
-- Los cambios CAPI (`0edcc87`, `a56e613`) y RLS local quedaron publicados en `origin/master`; el HEAD de backend revisado es `53a38e9`.
+- Los cambios CAPI (`0edcc87`, `a56e613`), RLS local y limpieza del fixture E2E (`a5d7fd8`) están publicados en `origin/master`. No se ejecutó el E2E tras este último cambio.
 
 ## REA-01 y Admin local
 
