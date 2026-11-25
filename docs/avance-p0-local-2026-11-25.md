@@ -8,10 +8,10 @@ Se usó el plan del 24 de noviembre para priorizar CAPI-01 y REA-01. La instrucc
 
 - Revisión del recorrido de configuración y entrega en el backend local. La configuración de entorno se indexa por UUID de tenant; el envío persistido usa `meta_dataset_id` y `encrypted_meta_access_token` y el worker descifra el token justo antes de llamar al proveedor.
 - Se encontró y corrigió un bypass: `META_CAPI_DEALERS_JSON` podía hacer que `claimNextCapiEvent` reclamara un evento aunque `meta_capi_enabled=false`. Ahora la bandera del tenant es obligatoria para ambas fuentes de credenciales.
-- Se añadió una prueba regresiva con dataset/token sintéticos. Backend compilado y 8 pruebas focalizadas aprobadas: guard de tenant, configuración CAPI, aislamiento de la carga por tenant y definición de rutas bajo RLS.
+- Se añadió una prueba regresiva con dataset/token sintéticos. Backend compilado y 10 pruebas focalizadas aprobadas: guard de tenant, configuración por tenant, carga de rutas bajo RLS y errores 400/403 del proveedor simulados sin HTTP, con comprobación de redacción del token.
 - En el Docker local, la función `list_qualification_signal_dealers()` devolvió 2 filas, `list_tenant_route_ids()` devolvió 2 y el rol de aplicación vio 2 tenants. El worker figura apagado y `META_CAPI_DEALERS_JSON` no está presente. Solo se reportan conteos y presencia.
 - El mapeo operativo por tenant y la presencia cifrada de credenciales siguen pendientes de una fuente local autorizada. Esta revisión no reconcilia aliases ni valores de producción.
-- Commit local del backend: `0edcc87` (`fix: honor disabled tenant CAPI setting`). No se publicó.
+- Commits locales del backend: `0edcc87` (respeta el flag CAPI por tenant) y `a56e613` (errores del provider cubiertos con stubs). No se publicaron.
 
 ## REA-01 y Admin local
 
