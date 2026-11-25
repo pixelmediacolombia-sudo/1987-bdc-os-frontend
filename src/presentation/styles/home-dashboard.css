@@ -1,4 +1,59 @@
 /* Fit the dealer start dashboard in a standard desktop viewport. */
+@media (min-width: 851px) {
+  .app-shell {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .main-column {
+    display: flex;
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .topbar {
+    flex: 0 0 64px;
+  }
+
+  .content {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    flex: 1;
+    margin: 0;
+    padding: 16px 30px 10px;
+    overflow-y: auto;
+  }
+
+  .content--home {
+    overflow: hidden;
+  }
+
+  .home-dashboard {
+    min-height: 100%;
+  }
+
+  .inbox-view {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+@media (min-width: 851px) and (max-height: 759px) {
+  .content {
+    padding: 9px 24px 7px;
+  }
+}
+
 @media (min-width: 1181px) and (min-height: 680px) {
   .app-shell--home {
     height: 100dvh;
@@ -267,7 +322,7 @@
 /* Keep dashboard content at its designed size instead of stretching on taller screens. */
 @media (min-width: 1181px) and (min-height: 680px) {
   .home-dashboard {
-    height: auto;
+    height: 100%;
     grid-template-rows: auto auto auto auto;
     align-content: start;
   }

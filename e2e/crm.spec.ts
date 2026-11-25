@@ -135,6 +135,7 @@ test('dealer start dashboard fits a desktop viewport without document scroll', a
   await page.setViewportSize({ width: 1536, height: 730 })
   const homeGeometry = await page.evaluate(() => ({
     dashboardHeight: document.querySelector('.home-dashboard')!.getBoundingClientRect().height,
+    shellHeight: document.querySelector('.app-shell')!.getBoundingClientRect().height,
     queueHeight: document.querySelector('.queue')!.getBoundingClientRect().height,
     leadRowHeight: document.querySelector('.lead-row')!.getBoundingClientRect().height,
   }))
@@ -145,11 +146,15 @@ test('dealer start dashboard fits a desktop viewport without document scroll', a
     documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
     shellHeight: document.querySelector('.app-shell')!.getBoundingClientRect().height,
     contentHeight: document.querySelector('.content')!.clientHeight,
+    viewHeight: document.querySelector('.inbox-view')!.getBoundingClientRect().height,
+    contentPadding: getComputedStyle(document.querySelector('.content')!).padding,
     contentWidth: document.querySelector('.content')!.clientWidth,
     viewportHeight: window.innerHeight,
   }))
   expect(inboxLayout.documentOverflow, 'document overflow in Bandeja').toBe(0)
   expect(inboxLayout.shellHeight).toBe(inboxLayout.viewportHeight)
+  expect(inboxLayout.shellHeight).toBe(homeGeometry.shellHeight)
+  expect(inboxLayout.viewHeight).toBeCloseTo(homeGeometry.dashboardHeight, 0)
   expect(inboxLayout.contentHeight).toBeGreaterThan(0)
   expect(inboxLayout.contentWidth, 'content width shift in Bandeja').toBe(homeContentWidth)
   await page.screenshot({ path: testInfo.outputPath('inbox-no-document-scroll.png') })
@@ -157,6 +162,7 @@ test('dealer start dashboard fits a desktop viewport without document scroll', a
   await expect(page.locator('.breadcrumb strong')).toHaveText('Inicio')
   const homeGeometryAfterReturn = await page.evaluate(() => ({
     dashboardHeight: document.querySelector('.home-dashboard')!.getBoundingClientRect().height,
+    shellHeight: document.querySelector('.app-shell')!.getBoundingClientRect().height,
     queueHeight: document.querySelector('.queue')!.getBoundingClientRect().height,
     leadRowHeight: document.querySelector('.lead-row')!.getBoundingClientRect().height,
   }))
