@@ -21,6 +21,22 @@ import '../styles/viewport-shell.css'
 import '../styles/home-dashboard.css'
 
 type DemoDealer = Dealer
+
+const ACTIVE_SECTION_KEY = 'bdc-os:active-section:'
+
+function defaultSectionFor(user: AuthUser): Section {
+  return user.accountType === 'admin' ? 'Resumen' : 'Inicio'
+}
+
+function activeSectionFor(user: AuthUser): Section {
+  const fallback = defaultSectionFor(user)
+  try {
+    const saved = window.sessionStorage.getItem(`${ACTIVE_SECTION_KEY}${user.id}`)
+    if (saved && navigationFor(user.accountType).some((item) => item.name === saved)) return saved as Section
+  } catch { /* Keep the default section when browser storage is unavailable. */ }
+  return fallback
+}
+
 function App() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [authStatus, setAuthStatus] = useState<'checking' | 'signed-out' | 'signed-in'>('checking')
@@ -47,13 +63,19 @@ function App() {
     let mounted = true
     appServices.auth.getCurrentSession.execute().then((user) => {
       if (!mounted) return
-      if (user) { setAuthUser(user); setActive(user.accountType === 'admin' ? 'Resumen' : 'Inicio'); setAuthStatus('signed-in') }
+      if (user) { setAuthUser(user); setActive(activeSectionFor(user)); setAuthStatus('signed-in') }
       else setAuthStatus('signed-out')
     }).catch(() => {
       if (mounted) { setAuthError('No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.'); setAuthStatus('signed-out') }
     })
     return () => { mounted = false }
   }, [])
+  useEffect(() => {
+    if (!authUser) return
+    const allowed = navigationFor(authUser.accountType).some((item) => item.name === active)
+    if (!allowed) { setActive(defaultSectionFor(authUser)); return }
+    try { window.sessionStorage.setItem(`${ACTIVE_SECTION_KEY}${authUser.id}`, active) } catch { /* Navigation still works without browser storage. */ }
+  }, [authUser, active])
   useEffect(() => {
     if (authUser?.accountType !== 'admin') return
     let mounted = true
@@ -71,13 +93,16 @@ function App() {
     try {
       const user = await appServices.auth.signIn.execute(email, password)
       setAuthUser(user)
-      setActive(user.accountType === 'admin' ? 'Resumen' : 'Inicio')
+      setActive(activeSectionFor(user))
       setAuthStatus('signed-in')
     } catch (cause) {
       setAuthError(cause instanceof Error ? cause.message : 'No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.')
     }
   }
   async function signOut() {
+    if (authUser) {
+      try { window.sessionStorage.removeItem(`${ACTIVE_SECTION_KEY}${authUser.id}`) } catch { /* Ignore unavailable browser storage. */ }
+    }
     await appServices.auth.signOut.execute()
     setAuthUser(null)
     setAuthStatus('signed-out')
