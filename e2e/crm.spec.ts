@@ -235,3 +235,45 @@ test('dealer users can browse, create, edit, and inspect contact history', async
   await expect(page.getByText('Se actualizaron campos de la ficha: nombre.')).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('contact-activity.png'), fullPage: true })
 })
+
+test('dealer inbox lists local conversations and opens persisted message history', async ({ page }, testInfo) => {
+  const dealerId = '11111111-1111-4111-8111-111111111111'
+  const contactId = '33333333-3333-4333-8333-333333333333'
+  const conversationId = '55555555-5555-4555-8555-555555555555'
+  await page.setViewportSize({ width: 1536, height: 900 })
+  await page.route('**/backend/auth/session', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ authenticated: true, user: { id: 'dealer-user-inbox', email: 'asesor@dealer.local', displayName: 'Asesor Bandeja', accountType: 'user' } }),
+  }))
+  await page.route('**/backend/auth/contacts/dealers', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer Inbox Local' }] }),
+  }))
+  await page.route('**/backend/auth/conversations?*', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{
+      id: conversationId, dealerId, contactId, contactName: 'Ana Prueba', phone: '+1 555 0100', channel: 'messenger',
+      owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', lastMessage: 'Hola, quiero conocer el inventario.', lastDirection: 'inbound',
+    }], total: 1, limit: 100, offset: 0 }),
+  }))
+  await page.route(`**/backend/auth/contacts/${contactId}?*`, (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ contact: {
+      id: contactId, dealerId, providerContactId: 'synthetic-inbox-contact', displayName: 'Ana Prueba', source: 'meta', phone: '+1 555 0100',
+      email: null, preferredLanguage: 'es', consentState: 'unknown', createdAt: '2026-11-25T09:00:00.000Z', updatedAt: '2026-11-25T09:00:00.000Z',
+      activities: [], conversations: [{ id: conversationId, channel: 'messenger', owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', messages: [
+        { id: 'message-inbound-e2e', direction: 'inbound', senderType: 'contact', content: 'Hola, quiero conocer el inventario.', createdAt: '2026-11-25T10:00:00.000Z' },
+        { id: 'message-outbound-e2e', direction: 'outbound', senderType: 'agent', content: 'Claro, ¿qué tipo de vehículo buscas?', createdAt: '2026-11-25T10:05:00.000Z' },
+      ] }],
+    } }),
+  }))
+  await page.goto('/')
+  await page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).click()
+  await expect(page.getByRole('heading', { name: 'Bandeja' })).toBeVisible()
+  await expect(page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).locator('b')).toHaveCount(0)
+  await expect(page.getByLabel('Dealer de la bandeja')).toHaveCount(0)
+  await expect(page.getByText('ACCESO DEL DEALER')).toBeVisible()
+  await expect(page.getByText('Hola, quiero conocer el inventario.', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /Ana Prueba/ }).click()
+  await expect(page.getByText('Claro, ¿qué tipo de vehículo buscas?', { exact: true })).toBeVisible()
+  await expect(page.getByText('La respuesta y la asignación se habilitarán cuando el flujo local de salida esté definido.')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('crm02-inbox-local.png'), fullPage: true })
+})

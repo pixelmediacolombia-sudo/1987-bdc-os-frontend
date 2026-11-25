@@ -49,6 +49,7 @@ export const appServices = {
     listDealers: () => contactRepository.listDealers(),
     list: (dealerId: string, filters: import('../infrastructure/contacts/http-contact-repository').ContactFilters) => contactRepository.list(dealerId, filters),
     get: (dealerId: string, contactId: string) => contactRepository.get(dealerId, contactId),
+    listConversations: (dealerId: string, filters: { search: string; channel: string }) => contactRepository.listConversations(dealerId, filters),
     create: (input: import('../domain/contact/contact').ContactInput) => contactRepository.create(input),
     update: (dealerId: string, contactId: string, input: Omit<import('../domain/contact/contact').ContactInput, 'dealerId'>) => contactRepository.update(dealerId, contactId, input),
   },

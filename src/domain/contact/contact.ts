@@ -42,6 +42,20 @@ export type ContactActivity = {
   createdAt: string
 }
 
+export type InboxConversation = {
+  id: string
+  dealerId: string
+  contactId: string
+  contactName: string | null
+  phone: string | null
+  channel: string
+  owner: string | null
+  state: string
+  lastActivity: string
+  lastMessage: string | null
+  lastDirection: string | null
+}
+
 export type ContactDetail = Omit<ContactSummary, 'conversationCount' | 'lastActivity' | 'channels'> & {
   conversations: ContactConversation[]
   activities: ContactActivity[]

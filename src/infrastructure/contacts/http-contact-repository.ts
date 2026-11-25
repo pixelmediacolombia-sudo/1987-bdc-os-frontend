@@ -1,4 +1,4 @@
-import type { ContactDealer, ContactDetail, ContactInput, ContactSummary } from '../../domain/contact/contact'
+import type { ContactDealer, ContactDetail, ContactInput, ContactSummary, InboxConversation } from '../../domain/contact/contact'
 import { HttpClient } from '../http/http-client'
 
 type DealerResponse = { dealers: ContactDealer[] }
@@ -6,6 +6,7 @@ type ContactListResponse = { contacts: ContactSummary[]; total: number; limit: n
 type ContactDetailResponse = { contact: ContactDetail }
 type ContactCreateResponse = { contact: ContactSummary }
 type ContactUpdateResponse = { contact: ContactSummary }
+type InboxListResponse = { conversations: InboxConversation[]; total: number; limit: number; offset: number }
 export type ContactFilters = { search: string; channel: string; consentState: string; sort: 'recent' | 'name'; limit: number; offset: number }
 
 export class HttpContactRepository {
@@ -32,6 +33,13 @@ export class HttpContactRepository {
     const query = new URLSearchParams({ dealerId })
     const result = await this.http.get<ContactDetailResponse>(`/auth/contacts/${encodeURIComponent(contactId)}?${query.toString()}`)
     return result.contact
+  }
+
+  listConversations(dealerId: string, filters: { search: string; channel: string }): Promise<InboxListResponse> {
+    const query = new URLSearchParams({ dealerId, limit: '100', offset: '0' })
+    if (filters.search.trim()) query.set('search', filters.search.trim())
+    if (filters.channel) query.set('channel', filters.channel)
+    return this.http.get<InboxListResponse>(`/auth/conversations?${query.toString()}`)
   }
 
   async create(input: ContactInput): Promise<ContactSummary> {
