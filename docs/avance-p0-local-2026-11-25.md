@@ -21,13 +21,15 @@ Se usó el plan del 24 de noviembre para priorizar CAPI-01 y REA-01. La instrucc
 
 Matriz anonimizada del Docker local (los alias son temporales y no corresponden al mapa comercial):
 
-| Tenant local | Nombre presente | CAPI activo | Dataset presente | Credencial cifrada presente | Señal de calificación activa |
-|---|---:|---:|---:|---:|---:|
-| local-1 | No | No | No | No | Sí |
-| local-2 | Sí | No | No | No | No |
+| Tenant local | Nombre presente | CAPI activo | Dataset presente | Credencial cifrada presente | Código de prueba presente | Señal de calificación activa |
+|---|---:|---:|---:|---:|---:|---:|
+| local-1 | No | No | No | No | No | Sí |
+| local-2 | Sí | No | No | No | No | No |
 
+- Auditoría local repetida el 25/11: el runtime informa `QUALIFICATION_SIGNAL_ENABLED=false`, `META_CAPI_DEALERS_JSON` ausente y cero dealers configurados por entorno. El worker está apagado. `META_APP_SECRET` y `META_WEBHOOK_VERIFY_TOKEN` están presentes en el contenedor local, pero no se leyeron sus valores; ninguno sustituye el dataset y token CAPI por tenant. En ambos tenants también falta el código de evento de prueba.
+- La cola local contiene 3 eventos pendientes, todos agrupados en `local-1`, creados el 20/11. Ese tenant tiene señal de calificación activa, pero CAPI desactivado y sin dataset ni credencial cifrada. Los tres tienen `attempts=0` y `claimed_at` vacío: no fueron reclamados ni enviados. No se leyeron IDs ni payloads, y no se borraron los eventos por falta de prueba de procedencia. Con el worker apagado y `meta_capi_enabled=false`, el guard actual impide que se reclamen para envío.
 - El mapeo operativo por tenant y la presencia cifrada de credenciales siguen pendientes de una fuente local autorizada. Esta revisión no reconcilia aliases ni valores de producción.
-- Commits locales del backend: `0edcc87` (respeta el flag CAPI por tenant) y `a56e613` (errores del provider cubiertos con stubs). No se publicaron.
+- Los cambios CAPI (`0edcc87`, `a56e613`) y RLS local quedaron publicados en `origin/master`; el HEAD de backend revisado es `53a38e9`.
 
 ## REA-01 y Admin local
 
