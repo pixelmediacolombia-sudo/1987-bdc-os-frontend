@@ -8,7 +8,7 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-01 · Shell CRM | Navegación, espacio de trabajo, búsqueda, dashboard, cola de atención y estados de demostración | Responsive; acciones demo funcionan; datos ficticios claramente identificados |
 | FE-02 · Acceso y empresas | Inicio de sesión, sesiones seguras, invitación/creación de usuarios y asignación a dealer; permisos del admin global y separación por tenant | Pruebas de autorización y aislamiento entre dos tenants |
 | FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición e historial; después bandeja CRM-02 | Contactos con permisos, auditoría, paginación y pruebas Docker locales; bandeja de escritura pendiente |
-| FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Corte local implementado: alta, cambio de etapa/responsable, auditoría e historial; falta validación e2e completa |
+| FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Flujo local validado e2e: alta, cambio de etapa y responsable, auditoría, historial, métricas de Inicio y aislamiento entre dealers |
 | FE-05 · Automatizaciones | Editor de flujos, disparadores, condiciones, acciones, ejecución y logs | Simulación local; idempotencia; fallas y reintentos cubiertos |
 | FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |
 | FE-07 · Canales Meta | Conectar Messenger, Instagram y WhatsApp por dealer; manejar permisos, mensajes, adjuntos y reintentos | Simuladores locales y pruebas de integración cubren inbound, outbound, persistencia y colas |
@@ -39,6 +39,13 @@ Criterios de aceptación para completar esta evolución:
 - Identificar los registros demo con nombres, teléfonos y notas ficticios; no reutilizar datos personales reales.
 - El seed debe ser idempotente y limitar cada inserción al tenant local de prueba. No se ejecuta en producción.
 - Cada escritura en frontend debe ir seguida de la reconstrucción y recreación del contenedor frontend local. Cada escritura en backend debe reconstruir y recrear el contenedor backend local para que el runtime coincida con el código.
+
+## Cierre local de FE-04 · Oportunidades
+
+- `npm run test:local:opportunities` levanta dos sesiones sintéticas y verifica creación, cambio de etapa, asignación, auditoría, historial y actualización de Inicio.
+- El alcance por dealer se comprueba al listar oportunidades e Inicio, intentar acceso cruzado y consultar el historial de una oportunidad del otro dealer. La reasignación hacia un usuario ajeno se rechaza con HTTP 400; los listados e Inicio ajenos con HTTP 403; el historial de una oportunidad no visible con HTTP 404.
+- La prueba es solo local y limpia sus usuarios, sesiones, eventos y oportunidades de fixture al terminar. No elimina los registros sintéticos persistentes que se usan para las demostraciones.
+- La vista frontend tiene cobertura de interacción y recarga con `npx vitest run src/presentation/features/opportunities/OpportunitiesView.test.tsx`.
 
 ## Alcance de identidad
 
