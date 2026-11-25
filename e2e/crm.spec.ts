@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 import { formatCurrentDate } from '../src/presentation/app/current-date'
 
 const email = process.env.BDC_E2E_ADMIN_EMAIL ?? 'admin@bdc-os.local'
