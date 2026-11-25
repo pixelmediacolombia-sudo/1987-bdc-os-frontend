@@ -26,7 +26,7 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 | ADM-10 | P1 | Backend + Frontend + QA | Diseñar controles, alertas y límites de plataforma con auditoría | Pendiente de reglas y responsables |
 | ADM-11 | P1 | Backend + Frontend + QA | Políticas versionadas y overrides aislados por dealer | Pendiente; extensión del plan ADM-05 |
 | ADM-12 | P1 | Producto + Seguridad + Backend | Decidir cuentas de soporte, roles y permisos | Pendiente de decisión de negocio |
-| REA-02 | P1 | REA + Backend + QA | Ampliar el mapa de backend más allá de `identity` | En curso local; compilación limpia y 88 archivos analizados, 270 fuentes fuera de cobertura REA; contraste productivo diferido; ver `docs/rea-02-backend-local-2026-11-25.md` |
+| REA-02 | P1 | REA + Backend + QA | Ampliar el mapa de backend más allá de `identity` | Mapa estático local de los 124 archivos de implementación completado; contraste con SHA desplegado diferido a la etapa final; ver `docs/rea-02-backend-local-2026-11-25.md` |
 | REA-03 | P1 | REA + Producto | Comparar configuración real de GHL con BDC OS | Pendiente de acceso observacional autorizado a GHL |
 | CRM-01 | P2 | Frontend + Backend | Contactos y ficha 360 con historial persistido por tenant | Placeholder frontend; requiere contrato y API |
 | CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | Placeholder frontend; definir eventos y operación |
@@ -84,7 +84,7 @@ Producto/Seguridad decide si el admin global único es suficiente. Si se requier
 ### REA-01/02/03 — Cerrar las brechas de evidencia (P0/P1)
 
 - **REA-01:** en BDC OS local, capturar Admin y dealer con estados autenticado/no autenticado, navegación, errores, llamadas a APIs permitidas y límites de acceso. Relacionar cada observación con código y endpoint.
-- **REA-02:** revisar backend completo y sus módulos webhooks/control/memory/Meta, inventariar rutas, workers y persistencia; contrastar artefacto desplegado/SHA con `master`. No inferir ausencia desde el subárbol `identity`.
+- **REA-02:** mapa estático local completado para los 124 archivos de implementación, incluidas rutas, workers y persistencia. La comparación con artefacto/SHA desplegado queda para la etapa final definida por el usuario. No inferir ausencia desde el subárbol `identity`.
 - **REA-03:** con una sesión GHL disponible, observar directamente Configuración y flujos relevantes para dealers. Registrar solo comportamiento y conceptos útiles para BDC OS, sin copiar código/datos. La página de ayuda ya abierta no sustituye esta captura.
 
 **Formato de evidencia por historia REA:** ID, versión/SHA revisado, escenario, observación directa o estática, limitaciones, endpoint/archivo contrastado y captura sanitizada cuando aporte valor.
@@ -122,7 +122,7 @@ Definir métricas con fuentes de verdad, ventana temporal y zona horaria; entreg
 1. CAPI-01 y REA-01 pueden arrancar en paralelo; no habilitar envíos productivos durante el levantamiento.
 2. ADM-07 y ADM-08 llevan el panel actual a un flujo productivo verificable.
 3. ADM-09 a ADM-12 cierran decisiones de plataforma/configuración antes de abrir controles sensibles.
-4. Antes de CRM, completar REA-02 para confirmar qué APIs de dominio ya existen; iniciar CRM-01 y CRM-02 como bases, luego CRM-03/04 y finalmente CRM-05/06 según dependencias.
+4. REA-02 ya cubrió localmente las APIs, rutas, workers y persistencia del backend; se difiere solo el SHA desplegado. Continuar CRM-01 y CRM-02 en local, luego CRM-03/04 y finalmente CRM-05/06 según dependencias.
 5. Cada paquete se cierra con PR/commit sobre las ramas de trabajo existentes, checks acordados, evidencia de aislamiento por dealer y nota de despliegue cuando aplique. No se ha iniciado ninguno de estos paquetes en esta actualización documental.
 
 ## Referencias retenidas
