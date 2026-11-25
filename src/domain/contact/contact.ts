@@ -34,8 +34,17 @@ export type ContactConversation = {
   messages: ContactMessage[]
 }
 
+export type ContactActivity = {
+  id: string
+  action: string
+  actorName: string
+  summary: string
+  createdAt: string
+}
+
 export type ContactDetail = Omit<ContactSummary, 'conversationCount' | 'lastActivity' | 'channels'> & {
   conversations: ContactConversation[]
+  activities: ContactActivity[]
 }
 
 export type ContactInput = {
