@@ -1,0 +1,29 @@
+# Avance P0 local - 25 de noviembre de 2026
+
+## Alcance
+
+Se usó el plan del 24 de noviembre para priorizar CAPI-01 y REA-01. La instrucción operativa del usuario es que todo el trabajo y todas las pruebas de esta etapa sean locales; por eso no se consultaron servicios productivos, no se validaron SHA publicados y no se hicieron cambios de despliegue.
+
+## CAPI-01
+
+- Revisión del recorrido de configuración y entrega en el backend local. La configuración de entorno se indexa por UUID de tenant; el envío persistido usa `meta_dataset_id` y `encrypted_meta_access_token` y el worker descifra el token justo antes de llamar al proveedor.
+- Se encontró y corrigió un bypass: `META_CAPI_DEALERS_JSON` podía hacer que `claimNextCapiEvent` reclamara un evento aunque `meta_capi_enabled=false`. Ahora la bandera del tenant es obligatoria para ambas fuentes de credenciales.
+- Se añadió una prueba regresiva con dataset/token sintéticos. Backend compilado y 8 pruebas focalizadas aprobadas: guard de tenant, configuración CAPI, aislamiento de la carga por tenant y definición de rutas bajo RLS.
+- En el Docker local, la función `list_qualification_signal_dealers()` devolvió 2 filas, `list_tenant_route_ids()` devolvió 2 y el rol de aplicación vio 2 tenants. El worker figura apagado y `META_CAPI_DEALERS_JSON` no está presente. Solo se reportan conteos y presencia.
+- El mapeo operativo por tenant y la presencia cifrada de credenciales siguen pendientes de una fuente local autorizada. Esta revisión no reconcilia aliases ni valores de producción.
+- Commit local del backend: `0edcc87` (`fix: honor disabled tenant CAPI setting`). No se publicó.
+
+## REA-01 y Admin local
+
+- Playwright ejecutó 10 E2E locales y todas pasaron. Incluyeron salud de API/PostgreSQL/Redis y directorio de usuarios contra Docker local, navegación Admin/dealer, cierre de sesión, vistas de contactos y denegación de salud global para rol dealer.
+- Los escenarios de usuario/sesión de la suite CRM usan sesiones y respuestas sintéticas interceptadas; los escenarios de salud y directorio usan el backend y PostgreSQL locales. No se usaron contactos reales.
+- Se actualizaron las capturas locales de salud y directorio: `output/evidence/adm-06-salud-global-docker.png` y `output/evidence/adm-07-directorio-usuarios-docker.png`. La captura de directorio contiene datos sintéticos de prueba.
+- La inspección pasiva REA del navegador no pudo adjuntarse: no hay endpoint CDP local activo en `127.0.0.1:9222`. Por tanto, el E2E entrega evidencia funcional local, pero la captura REA con DOM/red permanece parcial.
+- SHA del frontend local revisado: `b19c1d1` (`main`). Esto no afirma qué versión esté publicada.
+
+## Límites que continúan
+
+- No se probó la API de Meta ni se enviaron eventos.
+- No se verificó ningún entorno productivo ni se alteraron datos productivos.
+- CAPI-01 y REA-01 permanecen parciales: falta completar la matriz con una fuente local autorizada y obtener la captura REA de navegador con evidencia DOM/red sanitizada.
+- ADM-07 queda limitado a la validación local. La comprobación de publicación pertenece a la etapa final definida por el usuario.
