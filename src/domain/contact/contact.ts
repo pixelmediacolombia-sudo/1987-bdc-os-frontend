@@ -54,7 +54,12 @@ export type InboxConversation = {
   lastActivity: string
   lastMessage: string | null
   lastDirection: string | null
+  assignedUserId: string | null
+  assignedUserName: string | null
+  isRead: boolean
 }
+
+export type InboxAssignee = { id: string; displayName: string }
 
 export type ContactDetail = Omit<ContactSummary, 'conversationCount' | 'lastActivity' | 'channels'> & {
   conversations: ContactConversation[]

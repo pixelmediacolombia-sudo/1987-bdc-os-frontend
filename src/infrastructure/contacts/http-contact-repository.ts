@@ -1,4 +1,4 @@
-import type { ContactDealer, ContactDetail, ContactInput, ContactSummary, InboxConversation } from '../../domain/contact/contact'
+import type { ContactDealer, ContactDetail, ContactInput, ContactSummary, InboxAssignee, InboxConversation } from '../../domain/contact/contact'
 import { HttpClient } from '../http/http-client'
 
 type DealerResponse = { dealers: ContactDealer[] }
@@ -7,6 +7,7 @@ type ContactDetailResponse = { contact: ContactDetail }
 type ContactCreateResponse = { contact: ContactSummary }
 type ContactUpdateResponse = { contact: ContactSummary }
 type InboxListResponse = { conversations: InboxConversation[]; total: number; limit: number; offset: number }
+type InboxAssigneeResponse = { assignees: InboxAssignee[] }
 export type ContactFilters = { search: string; channel: string; consentState: string; sort: 'recent' | 'name'; limit: number; offset: number }
 
 export class HttpContactRepository {
@@ -40,6 +41,17 @@ export class HttpContactRepository {
     if (filters.search.trim()) query.set('search', filters.search.trim())
     if (filters.channel) query.set('channel', filters.channel)
     return this.http.get<InboxListResponse>(`/auth/conversations?${query.toString()}`)
+  }
+
+  async listConversationAssignees(dealerId: string): Promise<InboxAssignee[]> {
+    const query = new URLSearchParams({ dealerId })
+    const result = await this.http.get<InboxAssigneeResponse>(`/auth/conversations/assignees?${query.toString()}`)
+    return result.assignees
+  }
+
+  async updateConversation(dealerId: string, conversationId: string, input: { assignedUserId?: string | null; isRead?: boolean }): Promise<void> {
+    const query = new URLSearchParams({ dealerId })
+    await this.http.patch<{ conversation: InboxConversation }>(`/auth/conversations/${encodeURIComponent(conversationId)}?${query.toString()}`, input)
   }
 
   async create(input: ContactInput): Promise<ContactSummary> {

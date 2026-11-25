@@ -217,6 +217,14 @@
 .inbox-conversation-card{width:100%;display:flex;gap:10px;padding:12px;border:0;background:#fff;color:inherit;text-align:left;cursor:pointer}
 .inbox-conversation-card:hover{background:#fafaf8}
 .inbox-conversation-card.selected{background:#f5f6f2;box-shadow:inset 2px 0 #55734f}
+.inbox-conversation-card.unread .inbox-card-top strong{font-weight:700;color:#25251f}
+.inbox-unread-filter.active{border-color:#55734f;background:#edf2e9;color:#385333}
+.inbox-assignment-controls{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #efefeb;background:#fcfcfa}
+.inbox-assignment-controls label{display:flex;align-items:center;gap:8px;color:#777771;font-size:9px}
+.inbox-assignment-controls select{max-width:220px;height:30px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font-size:10px}
+.inbox-assignment-controls .secondary{min-height:30px;padding:0 10px;font-size:9px}
+.inbox-assignment-controls button:disabled,.inbox-assignment-controls select:disabled{opacity:.65;cursor:wait}
+.inbox-action-error{margin:0;padding:7px 14px;background:#fff4f2;color:#a44032;font-size:9px}
 .inbox-avatar{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border:1px solid #e5e5df;border-radius:50%;background:#f6f5f0;color:#5c5c56;font-size:10px;font-weight:700}
 .inbox-card-main{min-width:0;flex:1;display:grid;gap:5px}
 .inbox-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}

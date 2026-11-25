@@ -240,6 +240,9 @@ test('dealer inbox lists local conversations and opens persisted message history
   const dealerId = '11111111-1111-4111-8111-111111111111'
   const contactId = '33333333-3333-4333-8333-333333333333'
   const conversationId = '55555555-5555-4555-8555-555555555555'
+  const assigneeId = '66666666-6666-4666-8666-666666666666'
+  let isRead = false
+  let assignedUserId: string | null = null
   await page.setViewportSize({ width: 1536, height: 900 })
   await page.route('**/backend/auth/session', (route) => route.fulfill({
     status: 200,
@@ -249,12 +252,25 @@ test('dealer inbox lists local conversations and opens persisted message history
   await page.route('**/backend/auth/contacts/dealers', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer Inbox Local' }] }),
   }))
-  await page.route('**/backend/auth/conversations?*', (route) => route.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{
-      id: conversationId, dealerId, contactId, contactName: 'Ana Prueba', phone: '+1 555 0100', channel: 'messenger',
-      owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', lastMessage: 'Hola, quiero conocer el inventario.', lastDirection: 'inbound',
-    }], total: 1, limit: 100, offset: 0 }),
-  }))
+  await page.route('**/backend/auth/conversations**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (url.pathname.endsWith('/assignees')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ assignees: [{ id: assigneeId, displayName: 'Asesora Local' }] }) })
+    if (request.method() === 'PATCH') {
+      const body = request.postDataJSON() as { assignedUserId?: string | null; isRead?: boolean }
+      if (Object.hasOwn(body, 'assignedUserId')) assignedUserId = body.assignedUserId ?? null
+      if (Object.hasOwn(body, 'isRead')) isRead = body.isRead ?? false
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ conversation: { id: conversationId, assignedUserId, isRead } }) })
+    }
+    if (request.method() === 'GET' && url.pathname.endsWith('/conversations')) return route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{
+        id: conversationId, dealerId, contactId, contactName: 'Ana Prueba', phone: '+1 555 0100', channel: 'messenger',
+        owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', lastMessage: 'Hola, quiero conocer el inventario.', lastDirection: 'inbound',
+        assignedUserId, assignedUserName: assignedUserId ? 'Asesora Local' : null, isRead,
+      }], total: 1, limit: 100, offset: 0 }),
+    })
+    return route.fallback()
+  })
   await page.route(`**/backend/auth/contacts/${contactId}?*`, (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ contact: {
       id: contactId, dealerId, providerContactId: 'synthetic-inbox-contact', displayName: 'Ana Prueba', source: 'meta', phone: '+1 555 0100',
@@ -268,16 +284,27 @@ test('dealer inbox lists local conversations and opens persisted message history
   await page.goto('/')
   await page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).click()
   await expect(page.getByRole('heading', { name: 'Bandeja' })).toBeVisible()
+  await expect(page.getByText('Revisa las conversaciones locales por canal, asignación y estado de lectura.')).toBeVisible()
   await expect(page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).locator('b')).toHaveCount(0)
   await expect(page.getByLabel('Dealer de la bandeja')).toHaveCount(0)
   await expect(page.getByText('ACCESO DEL DEALER')).toBeVisible()
   await expect(page.getByText('Hola, quiero conocer el inventario.', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: /Ana Prueba/ }).click()
   await expect(page.getByText('Claro, ¿qué tipo de vehículo buscas?', { exact: true })).toBeVisible()
-  await expect(page.getByText('La respuesta y la asignación se habilitarán cuando el flujo local de salida esté definido.')).toBeVisible()
+  await expect(page.getByText('La asignación y el estado de lectura se guardan para este dealer. Las respuestas siguen deshabilitadas durante la validación local.')).toBeVisible()
+  await expect(page.getByText('No leída', { exact: true })).toBeVisible()
+  await page.getByLabel('Asignar conversación').selectOption(assigneeId)
+  await expect(page.getByText('Asignada a Asesora Local', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Marcar leída' }).click()
+  await expect(page.getByRole('button', { name: 'Marcar no leída' })).toBeVisible()
+  await expect(page.getByText('No leída', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'No leídas' }).click()
+  await expect(page.getByText('No hay conversaciones sin leer')).toBeVisible()
+  await page.getByRole('button', { name: 'No leídas' }).click()
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Bandeja' })).toBeVisible()
   await expect(page.getByText('Hola, quiero conocer el inventario.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Asignada a Asesora Local', { exact: true })).toBeVisible()
   await page.locator('.inbox-conversation-card').click()
   await expect(page.getByText('Claro, ¿qué tipo de vehículo buscas?', { exact: true })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('crm02-inbox-local.png'), fullPage: true })
