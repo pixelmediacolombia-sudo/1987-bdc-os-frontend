@@ -13,6 +13,25 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |
 | FE-07 · Canales Meta | Conectar Messenger, Instagram y WhatsApp por dealer; manejar permisos, mensajes, adjuntos y reintentos | Simuladores locales y pruebas de integración cubren inbound, outbound, persistencia y colas |
 
+## Evolución progresiva del inicio
+
+El inicio actual todavía usa datos de demostración definidos en el frontend: indicadores, contactos de atención, pipeline, prioridades y actividad reciente. A medida que cada módulo quede conectado, esta vista debe evolucionar para mostrar datos del backend del dealer autenticado en vez de conservar esos valores fijos.
+
+- Bandeja debe aportar conversaciones pendientes y su estado de lectura.
+- Contactos debe aportar los contactos recientes y su actividad real.
+- Oportunidades debe aportar etapas y valor del pipeline.
+- Calendario y tareas deben aportar pendientes y citas cuando sus APIs estén disponibles.
+- La actividad reciente y las sugerencias deben derivarse de eventos y estados persistidos, no de ejemplos estáticos.
+- Mientras una fuente todavía no exista, la tarjeta debe identificarse claramente como demostración o mostrar un estado vacío; no debe presentar cifras ficticias como datos reales.
+
+Criterios de aceptación para completar esta evolución:
+
+1. Cada indicador y lista tiene una fuente propia identificada y usa el alcance del dealer de la sesión; la autorización se valida en backend.
+2. Altas, cambios y nuevos mensajes de los módulos conectados se reflejan en el inicio al actualizar los datos.
+3. Hay estados de carga, vacío y error para cada sección alimentada por API.
+4. Pruebas locales con dos dealers confirman que los valores y contactos no se mezclan entre cuentas.
+5. La conexión se incorpora módulo por módulo y se valida en Docker local; la validación de producción queda para la etapa final definida por el usuario.
+
 ## Alcance de identidad
 
 - Un único usuario `admin` administra la plataforma completa. La base impide una segunda cuenta con ese tipo.
