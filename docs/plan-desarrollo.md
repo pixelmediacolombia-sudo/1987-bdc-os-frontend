@@ -8,14 +8,14 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-01 · Shell CRM | Navegación, espacio de trabajo, búsqueda, dashboard, cola de atención y estados de demostración | Responsive; acciones demo funcionan; datos ficticios claramente identificados |
 | FE-02 · Acceso y empresas | Inicio de sesión, sesiones seguras, invitación/creación de usuarios y asignación a dealer; permisos del admin global y separación por tenant | Pruebas de autorización y aislamiento entre dos tenants |
 | FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición e historial; después bandeja CRM-02 | Contactos con permisos, auditoría, paginación y pruebas Docker locales; bandeja de escritura pendiente |
-| FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Crear/mover/actualizar oportunidades con auditoría y pruebas e2e |
+| FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Corte local implementado: alta, cambio de etapa/responsable, auditoría e historial; falta validación e2e completa |
 | FE-05 · Automatizaciones | Editor de flujos, disparadores, condiciones, acciones, ejecución y logs | Simulación local; idempotencia; fallas y reintentos cubiertos |
 | FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |
 | FE-07 · Canales Meta | Conectar Messenger, Instagram y WhatsApp por dealer; manejar permisos, mensajes, adjuntos y reintentos | Simuladores locales y pruebas de integración cubren inbound, outbound, persistencia y colas |
 
 ## Evolución progresiva del inicio
 
-El inicio actual todavía usa datos de demostración definidos en el frontend: indicadores, contactos de atención, pipeline, prioridades y actividad reciente. A medida que cada módulo quede conectado, esta vista debe evolucionar para mostrar datos del backend del dealer autenticado en vez de conservar esos valores fijos.
+Inicio consume progresivamente el backend local del dealer autenticado. Los conteos, cola de conversaciones, valor del pipeline y actividad deben venir de registros persistidos; no se deben incluir cifras o contactos ficticios escritos en el frontend. Las fuentes que todavía no existan se muestran vacías o se retiran hasta conectarlas.
 
 - Bandeja debe aportar conversaciones pendientes y su estado de lectura.
 - Contactos debe aportar los contactos recientes y su actividad real.
@@ -31,6 +31,14 @@ Criterios de aceptación para completar esta evolución:
 3. Hay estados de carga, vacío y error para cada sección alimentada por API.
 4. Pruebas locales con dos dealers confirman que los valores y contactos no se mezclan entre cuentas.
 5. La conexión se incorpora módulo por módulo y se valida en Docker local; la validación de producción queda para la etapa final definida por el usuario.
+
+## Datos de demostración persistentes
+
+- Las demostraciones locales agregan registros sintéticos a PostgreSQL del dealer de prueba para recorrer el flujo completo y recargar la página sin perderlos.
+- No borrar automáticamente esos registros al terminar una prueba o demostración. Se conservan hasta que el usuario solicite expresamente limpiarlos.
+- Identificar los registros demo con nombres, teléfonos y notas ficticios; no reutilizar datos personales reales.
+- El seed debe ser idempotente y limitar cada inserción al tenant local de prueba. No se ejecuta en producción.
+- Cada escritura en frontend debe ir seguida de la reconstrucción y recreación del contenedor frontend local. Cada escritura en backend debe reconstruir y recrear el contenedor backend local para que el runtime coincida con el código.
 
 ## Alcance de identidad
 

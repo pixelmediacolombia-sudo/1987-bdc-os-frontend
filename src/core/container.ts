@@ -18,6 +18,7 @@ import { HttpSystemHealthRepository } from '../infrastructure/system-health/http
 import { HttpAdminUserRepository } from '../infrastructure/admin-users/http-admin-user-repository'
 import { ListAdminUsers } from '../application/admin-users/list-admin-users'
 import { HttpContactRepository } from '../infrastructure/contacts/http-contact-repository'
+import { HttpOpportunityRepository } from '../infrastructure/opportunities/http-opportunity-repository'
 
 const http = new HttpClient('/backend')
 const authRepository = new HttpAuthRepository(http)
@@ -27,6 +28,7 @@ const configurationRepository = new HttpDealerConfigurationRepository(http)
 const systemHealthRepository = new HttpSystemHealthRepository(http)
 const adminUserRepository = new HttpAdminUserRepository(http)
 const contactRepository = new HttpContactRepository(http)
+const opportunityRepository = new HttpOpportunityRepository(http)
 
 export const appServices = {
   auth: {
@@ -54,5 +56,13 @@ export const appServices = {
     updateConversation: (dealerId: string, conversationId: string, input: { assignedUserId?: string | null; isRead?: boolean }) => contactRepository.updateConversation(dealerId, conversationId, input),
     create: (input: import('../domain/contact/contact').ContactInput) => contactRepository.create(input),
     update: (dealerId: string, contactId: string, input: Omit<import('../domain/contact/contact').ContactInput, 'dealerId'>) => contactRepository.update(dealerId, contactId, input),
+  },
+  opportunities: {
+    listDealers: () => opportunityRepository.listDealers(),
+    dashboard: (dealerId: string) => opportunityRepository.dashboard(dealerId),
+    list: (dealerId: string) => opportunityRepository.list(dealerId),
+    activity: (dealerId: string, id: string) => opportunityRepository.activity(dealerId, id),
+    create: (input: import('../domain/opportunity/opportunity').OpportunityInput) => opportunityRepository.create(input),
+    update: (dealerId: string, id: string, input: { stage?: import('../domain/opportunity/opportunity').OpportunityStage; assignedUserId?: string | null }) => opportunityRepository.update(dealerId, id, input),
   },
 }
