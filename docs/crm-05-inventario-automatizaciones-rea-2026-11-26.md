@@ -1,7 +1,7 @@
 # CRM-05 · Inventario de automatizaciones, nodos y subtareas
 
-**Corte:** 26 de noviembre de 2026  
-**Objetivo:** investigar GHL y n8n, inventariar lo que BDC OS puede automatizar con el código actual, definir el canvas visual requerido y dividir el trabajo antes de implementar CRM-05.  
+**Corte:** 26 de noviembre de 2026
+**Objetivo:** investigar GHL y n8n, inventariar lo que BDC OS puede automatizar con el código actual, definir el canvas visual requerido y dividir el trabajo antes de implementar CRM-05.
 **Estado:** investigación y diseño preliminar; no se ha comenzado el motor ni el editor.
 
 ## Resumen ejecutivo
