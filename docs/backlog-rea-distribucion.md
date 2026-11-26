@@ -28,9 +28,9 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 | ADM-12 | P1 | Producto + Seguridad + Backend | Decidir cuentas de soporte, roles y permisos | Pendiente de decisión de negocio |
 | REA-02 | P1 | REA + Backend + QA | Ampliar el mapa de backend más allá de `identity` | Mapa estático local de los 124 archivos de implementación completado; contraste con SHA desplegado diferido a la etapa final; ver `docs/rea-02-backend-local-2026-11-25.md` |
 | REA-03 | P1 | REA + Producto | Comparar configuración real de GHL con BDC OS | Pendiente de acceso observacional autorizado a GHL |
-| CRM-01 | P2 | Frontend + Backend | Contactos y ficha 360 con historial persistido por tenant | En progreso local: CRUD/timeline, E2E UI sintéticos y API/RLS con dos dealers; vínculo y lectura de oportunidades implementados. Pendiente integrar eventos de oportunidades en el timeline y mantener la cobertura E2E de aislamiento |
-| CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | En progreso local: lectura, asignación y estado leído/no leído vía API; compositor local guarda en localStorage por dealer/conversación, con retry e idempotencia probados. Sin envío ni persistencia backend; falta endpoint de mensajes, identidad de salida y E2E con dos dealers |
-| CRM-03 | P2 | Frontend + Backend | Pipeline/Oportunidades persistidas y cambios auditables | Cerrado local FE-04: alta, etapa, responsable, auditoría, historial, Inicio y aislamiento entre dealers; validación productiva queda para la puerta final |
+| CRM-01 | P2 | Frontend + Backend | Contactos y ficha 360 con historial persistido por tenant | Cerrado localmente: CRUD/timeline, eventos de oportunidades vinculadas y E2E UI/API-RLS con dos dealers; producción pendiente |
+| CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | Cerrado localmente: respuestas persistidas, remitente, idempotencia, fallos/reintentos; `conversation.routes.ts` separado en módulos de listado, flujo y mensajes; E2E local de dos dealers pasó tras la segmentación. Producción pendiente |
+| CRM-03 | P2 | Frontend + Backend | Pipeline/Oportunidades persistidas y cambios auditables | Cerrado localmente: etapas renombrables y reordenables por dealer, próxima acción, archivado/restauración, auditoría e aislamiento E2E; producción pendiente |
 | CRM-04 | P2 | Frontend + Backend | Calendario, disponibilidad, citas y zona horaria | Placeholder frontend; requiere reglas de dealer |
 | CRM-05 | P3 | Backend + Frontend + QA | Automatizaciones con disparadores, acciones, logs y reintentos | Placeholder frontend; depende de dominio/eventos |
 | CRM-06 | P3 | Backend + Frontend + Datos | Reportes de operación con métricas trazables | Placeholder frontend; depende de datos reales |
@@ -91,7 +91,7 @@ Producto/Seguridad decide si el admin global único es suficiente. Si se requier
 
 ## Fichas de trabajo: CRM
 
-Estado local actualizado al 26 de noviembre de 2026: Inicio y Oportunidades consumen APIs locales; FE-04 está cerrado localmente según `docs/plan-desarrollo.md`. CRM-01 quedó cerrado localmente: CRUD/timeline, E2E UI sintético de ficha y actividad, y prueba API/RLS local de dos dealers para listado, detalle, conversación/mensaje, alta, duplicado, edición, auditoría y vínculo de oportunidades. La suite backend mantenible ahora crea oportunidades asociadas a contactos de cada dealer y comprueba que un dealer no pueda vincular el contacto del otro (HTTP 400); pasó 1/1. El E2E UI Contactos pasó 1/1, pero usa respuestas HTTP sintéticas y no sustituye la prueba RLS. CRM-02 incluye listado/historial, asignación y lectura por API; el compositor solo simula respuesta en localStorage. Siguiente trabajo CRM: implementar envío y persistencia de mensajes en servidor, identidad del remitente, idempotencia, fallos/reintentos y E2E de dos dealers. Calendario, Automatizaciones y Reportes siguen como vistas por construir.
+Estado local actualizado al 26 de noviembre de 2026: Inicio, Contactos, Bandeja y Oportunidades consumen APIs locales. CRM-01 quedó cerrado localmente con CRUD/timeline y prueba API/RLS de dos dealers. CRM-02 quedó cerrado localmente con envío backend persistido, identidad, idempotencia, fallos/reintentos; `conversation.routes.ts` ahora delega en módulos de listado, acciones de conversación y envío, y su E2E de dos dealers pasó después de la separación. CRM-03 quedó cerrado localmente con configuración tenant-scoped de nombres/orden de etapas, próxima acción/fecha, archivado/restaurable, auditoría y cobertura E2E de dos dealers. Las pruebas de UI usan respuestas sintéticas y complementan, pero no sustituyen, RLS. No se enviaron mensajes reales ni se validó producción. Calendario, Automatizaciones y Reportes siguen como vistas por construir.
 
 ### CRM-01 — Contactos y ficha 360 (P2)
 
@@ -107,7 +107,7 @@ Estado 2026-11-26: CRM-02 cerrado localmente. El backend expone POST tenant-scop
 
 Etapas configurables con historial de transición, responsable, valor, próxima acción y vínculo con contacto/conversación; acciones de mover/crear/archivar con permisos. Aceptación: persistencia backend, aislamiento tenant, auditoría y regresión del flujo de calificación existente.
 
-Estado 2026-11-26: FE-04 cerrado localmente. El cierre del 25/11 reporta alta, cambio de etapa/responsable, auditoría, historial, métricas de Inicio y aislamiento con dos dealers sintéticos. El test UI de este frontend simula las respuestas HTTP; la prueba backend local es la evidencia de integración. Producción queda fuera de esta etapa.
+Estado 2026-11-26: CRM-03 cerrado localmente. Además del alcance FE-04, cada dealer puede renombrar y reordenar las cinco etapas existentes; la API persiste próxima acción y fecha, archivado/restauración con soft-delete, y auditoría. Los tableros y las métricas de Inicio excluyen archivadas por defecto. `npm run test:local:opportunities` pasó 1/1 con persistencia y aislamiento de dos dealers, y `npx vitest run src/presentation/features/opportunities/OpportunitiesView.test.tsx` pasó 3/3. La configuración cubre nombres/orden de las cinco etapas existentes; agregar o eliminar claves de etapa no forma parte de este cierre. Producción queda pendiente.
 
 ### CRM-04 — Calendario y citas (P2)
 
@@ -126,7 +126,7 @@ Definir métricas con fuentes de verdad, ventana temporal y zona horaria; entreg
 1. CAPI-01 y REA-01 pueden arrancar en paralelo; no habilitar envíos productivos durante el levantamiento.
 2. ADM-07 y ADM-08 llevan el panel actual a un flujo productivo verificable.
 3. ADM-09 a ADM-12 cierran decisiones de plataforma/configuración antes de abrir controles sensibles.
-4. REA-02 y CRM-01/CRM-02 quedaron cerrados localmente; la verificación de producción sigue pendiente. Continuar con CRM-03/04 y después CRM-05/06 según dependencias.
+4. REA-02 y CRM-01/CRM-02/CRM-03 quedaron cerrados localmente; la verificación de producción sigue pendiente. Continuar con CRM-04 y después CRM-05/06 según dependencias.
 5. Cada paquete se cierra con PR/commit sobre las ramas de trabajo existentes, checks acordados, evidencia de aislamiento por dealer y nota de despliegue cuando aplique. No se ha iniciado ninguno de estos paquetes en esta actualización documental.
 
 ## Referencias retenidas

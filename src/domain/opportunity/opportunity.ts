@@ -1,4 +1,5 @@
 export type OpportunityStage = 'new' | 'working' | 'closing' | 'won' | 'lost'
+export type OpportunityStageConfig = { stageKey: OpportunityStage; label: string; position: number }
 
 export type Opportunity = {
   id: string
@@ -13,6 +14,9 @@ export type Opportunity = {
   assignedUserName: string | null
   expectedCloseDate: string | null
   notes: string | null
+  nextAction: string | null
+  nextActionAt: string | null
+  archivedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -28,6 +32,8 @@ export type OpportunityInput = {
   assignedUserId?: string | null
   expectedCloseDate?: string | null
   notes?: string | null
+  nextAction?: string | null
+  nextActionAt?: string | null
 }
 
 export type OpportunityActivity = { id: string; action: string; summary: string; actorName: string; createdAt: string }

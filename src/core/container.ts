@@ -61,9 +61,11 @@ export const appServices = {
   opportunities: {
     listDealers: () => opportunityRepository.listDealers(),
     dashboard: (dealerId: string) => opportunityRepository.dashboard(dealerId),
-    list: (dealerId: string) => opportunityRepository.list(dealerId),
+    list: (dealerId: string, includeArchived?: boolean) => opportunityRepository.list(dealerId, includeArchived),
+    stages: (dealerId: string) => opportunityRepository.stages(dealerId),
+    saveStages: (dealerId: string, stages: import('../domain/opportunity/opportunity').OpportunityStageConfig[]) => opportunityRepository.saveStages(dealerId, stages),
     activity: (dealerId: string, id: string) => opportunityRepository.activity(dealerId, id),
     create: (input: import('../domain/opportunity/opportunity').OpportunityInput) => opportunityRepository.create(input),
-    update: (dealerId: string, id: string, input: { stage?: import('../domain/opportunity/opportunity').OpportunityStage; assignedUserId?: string | null }) => opportunityRepository.update(dealerId, id, input),
+    update: (dealerId: string, id: string, input: { stage?: import('../domain/opportunity/opportunity').OpportunityStage; assignedUserId?: string | null; nextAction?: string | null; nextActionAt?: string | null; archived?: boolean }) => opportunityRepository.update(dealerId, id, input),
   },
 }

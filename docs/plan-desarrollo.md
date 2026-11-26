@@ -7,8 +7,8 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-00 · Entorno local e identidad | Compose aislado; PostgreSQL y Redis; cuentas `admin`/`user`; un admin global; usuarios vinculados a dealers (`tenants`); hash de contraseña de prueba en `.env` local | Servicios saludables; el admin se crea una vez desde `.env`; secretos fuera de Git |
 | FE-01 · Shell CRM | Navegación, espacio de trabajo, búsqueda, dashboard, cola de atención y estados de demostración | Responsive; acciones demo funcionan; datos ficticios claramente identificados |
 | FE-02 · Acceso y empresas | Inicio de sesión, sesiones seguras, invitación/creación de usuarios y asignación a dealer; permisos del admin global y separación por tenant | Pruebas de autorización y aislamiento entre dos tenants |
-| FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición, timeline persistido y oportunidades vinculadas; Bandeja CRM-02: listado, lectura, asignación, estado leído/no leído, respuesta persistida y estados de entrega | CRM-01 cerrado localmente con E2E UI y prueba API/RLS de dos dealers. CRM-02 cerrado localmente: respuesta autenticada por Meta, remitente asociado, persistencia, idempotencia, rechazo/reintento y estado incierto; E2E backend de dos dealers y E2E UI con respuesta HTTP controlada. No se enviaron mensajes reales durante las pruebas; falta validación de producción |
-| FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Flujo local validado e2e: alta, cambio de etapa y responsable, auditoría, historial, métricas de Inicio y aislamiento entre dealers |
+| FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición, timeline persistido y oportunidades vinculadas; Bandeja CRM-02: listado, lectura, asignación, estado leído/no leído, respuesta persistida y estados de entrega | CRM-01 y CRM-02 cerrados localmente con E2E UI/API de dos dealers. El backend de conversaciones quedó segmentado por listado, flujo y mensajes; su E2E de respuestas volvió a pasar tras la separación. No se enviaron mensajes reales durante las pruebas; falta validación de producción |
+| FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial, búsqueda, próxima acción y archivo | CRM-03 cerrado localmente: alta, cambios auditados, etiquetas/orden configurables por dealer, próxima acción persistida, archivado/restauración y aislamiento de dos dealers; falta validación de producción |
 | FE-05 · Automatizaciones | Editor de flujos, disparadores, condiciones, acciones, ejecución y logs | Simulación local; idempotencia; fallas y reintentos cubiertos |
 | FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |
 | FE-07 · Canales Meta | Conectar Messenger, Instagram y WhatsApp por dealer; manejar permisos, mensajes, adjuntos y reintentos | Simuladores locales y pruebas de integración cubren inbound, outbound, persistencia y colas |
@@ -47,6 +47,14 @@ Criterios de aceptación para completar esta evolución:
 - El alcance por dealer se comprueba al listar oportunidades e Inicio, intentar acceso cruzado y consultar el historial de una oportunidad del otro dealer. La reasignación hacia un usuario ajeno se rechaza con HTTP 400; los listados e Inicio ajenos con HTTP 403; el historial de una oportunidad no visible con HTTP 404.
 - La prueba es solo local y limpia sus usuarios, sesiones, eventos y oportunidades de fixture al terminar. No elimina los registros sintéticos persistentes que se usan para las demostraciones.
 - La vista frontend tiene cobertura de interacción y recarga con `npx vitest run src/presentation/features/opportunities/OpportunitiesView.test.tsx`.
+
+## Cierre local de CRM-03 · Pipeline
+
+- Las cinco etapas iniciales se mantienen como claves estables, y cada dealer puede personalizar sus etiquetas y orden sin afectar a otros. La API limita la configuración al dealer autenticado y registra los cambios en auditoría.
+- Oportunidades persistidas admiten próxima acción, fecha de seguimiento y archivado lógico/restauración. Las listas y los agregados del Inicio omiten archivadas por defecto; la vista permite incluirlas y restaurarlas.
+- `npm run test:local:opportunities` pasó 1/1 en Docker local con sesiones de dos dealers y comprobó configuración de etapas aislada, próxima acción, archivado/restauración y actividad auditada. La prueba de UI pasó 3/3 y cubre creación, responsable/etapa, próxima acción y archivo.
+- `npm run test:local:crm-replies` pasó 1/1 tras separar `conversation.routes.ts` en listado, flujo de conversación y envío de mensajes, preservando persistencia, identidad de remitente, idempotencia y aislamiento.
+- La segmentación de etapas permite renombrar/reordenar las cinco claves actuales; agregar o eliminar etapas queda como evolución posterior. No hubo envíos reales de Meta ni validación productiva.
 
 ## Alcance de identidad
 

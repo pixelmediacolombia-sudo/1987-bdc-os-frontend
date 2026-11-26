@@ -41,6 +41,14 @@ export class HttpClient {
     })
   }
 
+  async put<T>(path: string, body?: unknown): Promise<T> {
+    return this.send<T>(path, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  }
+
   async delete<T = unknown>(path: string): Promise<T> {
     return this.send<T>(path, { method: 'DELETE' })
   }
