@@ -4,13 +4,15 @@
 **Propósito:** convertir la revisión de REA, el estado del repositorio y los pendientes Admin/CAPI en paquetes de trabajo asignables.
 **Repos:** frontend `main`; backend `master`.
 
+**Recordatorio permanente:** después de cada cambio de código, reconstruir y recrear el contenedor local afectado antes de validar o continuar. Las ediciones únicamente documentales no requieren recargar contenedores.
+
 ## Cómo leer este backlog
 
 - **Verificado en código:** el comportamiento o endpoint aparece en el código fuente actual.
 - **Hallazgo estático REA:** candidato recuperado del artefacto compilado. No confirma ejecución, permisos ni disponibilidad productiva.
 - **Tarea propuesta:** trabajo pendiente derivado del objetivo CRM parecido a GHL; no significa que REA haya comprobado que GHL lo implemente de esa misma forma.
 
-REA no copió código. El artefacto frontend analizado fue `dist` (SHA-256 `718e66c5…5027380`): la extracción de rutas no encontró rutas candidatas y dejó el grafo parcial/desconocido por un límite de análisis del bundle. El artefacto backend fue solamente `dist/features/identity` (SHA-256 `253ab25a…e3a972`), no todo el backend; produjo candidatos estáticos para rutas Admin que se contrastaron con `identity.routes.ts`. La captura de navegador fue una sola navegación a una página de ayuda de GHL, sin DOM, pantalla, accesibilidad ni tráfico de la app. Por eso, los paquetes CRM de abajo son un plan basado en las secciones que ya muestra BDC OS y en el objetivo acordado; falta una comparación observacional real de GHL.
+REA no copió código. El artefacto frontend analizado fue `dist` (SHA-256 `718e66c5…5027380`): la extracción de rutas no encontró rutas candidatas y dejó el grafo parcial/desconocido por un límite de análisis del bundle. El artefacto backend fue solamente `dist/features/identity` (SHA-256 `253ab25a…e3a972`), no todo el backend; produjo candidatos estáticos para rutas Admin que se contrastaron con `identity.routes.ts`. Para CRM-05 se hizo después una revisión directa y de solo lectura en Chrome de la UI autenticada de GHL; se documentó el alcance y se distingue de una captura formal REA porque el cleanup de REA sigue incompleto. La comparación de n8n está respaldada por documentación oficial, no por una instancia n8n conectada.
 
 Los candidatos Admin recuperados por REA y contrastados en el router fuente incluyen `/admin/dealers` (GET/POST), `/admin/dealers/:dealerId/configuration` (GET), `/admin/dealers/:dealerId/invitations` (POST), `/admin/dealers/:dealerId/meta/connect` (GET), `/admin/users` (GET), `/admin/audit` (GET), `/admin/system/health` (GET), y los flujos `/login`, `/logout`, `/session` e `/invitations/accept`. El router se monta bajo `/auth`. Esta lista documenta superficie ya presente; no es un backlog de endpoints nuevos.
 
@@ -32,8 +34,10 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 | CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | Cerrado localmente: respuestas persistidas, remitente, idempotencia, fallos/reintentos; `conversation.routes.ts` separado en módulos de listado, flujo y mensajes; E2E local de dos dealers pasó tras la segmentación. Producción pendiente |
 | CRM-03 | P2 | Frontend + Backend | Pipeline/Oportunidades persistidas y cambios auditables | Cerrado localmente: etapas renombrables y reordenables por dealer, próxima acción, archivado/restauración, auditoría e aislamiento E2E; producción pendiente |
 | CRM-04 | P2 | Frontend + Backend | Calendario, disponibilidad, citas y zona horaria | Cerrado localmente con `America/New_York`, persistencia, conflictos, DST y aislamiento; recordatorios se guardan, falta despacho de notificaciones y validación de producción |
-| CRM-05 | P3 | Frontend + Backend + QA | Canvas visual de automatizaciones, nodos CRM, ejecución y logs | Investigación previa iniciada; cada nodo debe ejecutar una operación real y comprobarse de extremo a extremo; REA GHL/n8n e inventario subdivididos en subtareas, ver nota enlazada |
+| CRM-05 | P3 | Frontend + Backend + QA | Canvas visual de automatizaciones, nodos CRM, ejecución y logs | REA GHL de solo lectura y comparación documental de n8n completadas para inventario funcional; implementación pendiente; ver nota enlazada |
 | CRM-06 | P3 | Backend + Frontend + Datos | Reportes de operación con métricas trazables | Placeholder frontend; depende de datos reales |
+| REA-04 | P2 | REA + AI + Backend + Producto | REA de Conversation AI en GHL y contraste con memoria existente en BDC | Auditoría completada en solo lectura; sin llamadas a modelos ni herramientas API/MCP; ver `docs/rea-agentes-ia-bdc-2026-11-26.md` |
+| CRM-07 | P3 | AI + Backend + Frontend + QA | Implementar varios agentes de texto sencillos tipo Conversation AI con memoria inyectada | Futuro y separado de REA-04; UX mínima, un interruptor prender/apagar por agente, KB opcional, solo modelos OpenAI; sin acciones API ni MCP |
 
 P0/P1 son tareas de continuidad de Admin, seguridad y obtención de evidencia. P2/P3 expanden el CRM; pueden dividirse en historias de diseño, API, UI y validación por cada equipo.
 
@@ -125,12 +129,22 @@ Estado 2026-11-26: implementación todavía no iniciada. La revisión de solo le
 
 Definir métricas con fuentes de verdad, ventana temporal y zona horaria; entregar filtros por dealer, canal y responsable; reconciliar cada indicador con registros base. Aceptación: sin valores demo en reportes de producción, permisos tenant y exactitud cubierta por fixtures/E2E.
 
+### REA-04 — Auditoría de agentes de IA (P2)
+
+**Estado 2026-11-26:** la REA GHL diferencia `Managed Agents 0` en Agent Studio de los agentes configurados en la superficie clásica de Conversation AI. La página Conversation AI permite crear y administrar varios agentes. La captura del usuario y revisión de lectura muestran un agente Messenger con modelo GPT-4.1 seleccionado y una acción API `DealerAdmin - Contexto de conversación Messenger`; su Knowledge Base y MCP no tenían conexiones configuradas. El agente también expone Auto-Pilot, temporización, límites de mensajes, pausa por actividad de asesor, disclaimer y resumen. No se abrió el detalle de la API Call, ni se probó, modificó o publicó ningún agente. La cuenta muestra 2 de 15 espacios de Knowledge Base ocupados; su contenido no se abrió. La galería incluye ejemplos de atención por texto, calificación, reserva y concierge multicanal. El usuario definió una experiencia simple con varios agentes independientes, memoria inyectada desde conversaciones BDC y base de conocimiento opcional. La REA está contrastada estáticamente con el backend; no se hicieron llamadas a modelos ni se conectaron API Calls/MCP como herramientas.
+
+La memoria existente consulta el transcript reciente (8–12 mensajes), hechos activos y objetivos bajo filtros/aislamiento de tenant, dentro del flujo de calificación existente. El adapter OpenAI actual es para extracción estructurada y no es todavía un agente de respuesta libre. No se encontró un módulo de base de conocimiento en el backend inspeccionado. La prueba de modelos OpenAI queda fuera de la auditoría y no se hizo ninguna llamada. La memoria contextual puede reducir respuestas sin sustento, pero no garantizar que el modelo nunca alucine.
+
+### CRM-07 — Asistente Conversacional BDC (P3, futuro)
+
+Implementación independiente a futuro: permitir varios agentes de texto sencillos e independientes que ayuden al BDC con conversaciones de leads y aprovechen contexto de conversación persistido. La pantalla inicial debe ser fácil para el dealer: configurar solo nombre/instrucciones esenciales y modelo permitido de OpenAI; inyectar la memoria automáticamente; ofrecer KB solo cuando necesite información aprobada adicional; y mostrar un único interruptor por agente para prender/apagar. No incluir acciones API ni MCP. La memoria por agente, el modo de respuesta y el diseño seguro de activación se detallan al iniciar CRM-07. No iniciado; separado de CRM-05.
+
 ## Orden sugerido y criterios de cierre
 
 1. CAPI-01 y REA-01 pueden arrancar en paralelo; no habilitar envíos productivos durante el levantamiento.
 2. ADM-07 y ADM-08 llevan el panel actual a un flujo productivo verificable.
 3. ADM-09 a ADM-12 cierran decisiones de plataforma/configuración antes de abrir controles sensibles.
-4. REA-02 y CRM-01/CRM-02/CRM-03/CRM-04 quedaron cerrados localmente; la verificación de producción sigue pendiente. Continuar con CRM-05 y después CRM-06 según dependencias.
+4. REA-02, REA-04 y CRM-01/CRM-02/CRM-03/CRM-04 quedaron cerrados localmente; CRM-05-A/B completan la investigación de automatizaciones, y su implementación sigue pendiente. La implementación del agente CRM-07 queda para una tarea posterior; cualquier prueba OpenAI local también queda pendiente y no se hizo en esta auditoría.
 5. Cada paquete se cierra con PR/commit sobre las ramas de trabajo existentes, checks acordados, evidencia de aislamiento por dealer y nota de despliegue cuando aplique. No se ha iniciado ninguno de estos paquetes en esta actualización documental.
 
 ## Referencias retenidas
