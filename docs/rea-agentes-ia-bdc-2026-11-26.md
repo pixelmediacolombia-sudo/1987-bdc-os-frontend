@@ -1,7 +1,7 @@
 # REA-04 · Agentes de IA para BDC OS
 
 **Corte:** 26 de noviembre de 2026  
-**Estado:** REA de GHL y contraste estático con el backend BDC completados. No se hicieron llamadas a modelos ni se conectaron API Calls/MCP como herramientas. La construcción del agente queda separada como CRM-07 futuro.
+**Estado:** investigación de solo lectura de GHL y contraste estático con el backend BDC completados para el alcance funcional. La captura formal REA de la cuenta GHL no quedó retenida por `cleanup_incomplete`; la observación manual no se presenta como evidencia REA formal. No se hicieron llamadas a modelos ni se conectaron API Calls/MCP como herramientas. La construcción del agente queda separada como CRM-07 futuro.
 
 **Recordatorio operativo:** después de cada cambio de código se debe reconstruir y recrear el contenedor local afectado antes de validar o continuar. Esta actualización es documentación y no requiere recarga del contenedor.
 

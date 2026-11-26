@@ -36,7 +36,7 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 | CRM-04 | P2 | Frontend + Backend | Calendario, disponibilidad, citas y zona horaria | Cerrado localmente con `America/New_York`, persistencia, conflictos, DST y aislamiento; recordatorios se guardan, falta despacho de notificaciones y validación de producción |
 | CRM-05 | P3 | Frontend + Backend + QA | Canvas visual de automatizaciones, nodos CRM, ejecución y logs | REA GHL de solo lectura y comparación documental de n8n completadas para inventario funcional; implementación pendiente; ver nota enlazada |
 | CRM-06 | P3 | Backend + Frontend + Datos | Reportes de operación con métricas trazables | Placeholder frontend; depende de datos reales |
-| REA-04 | P2 | REA + AI + Backend + Producto | REA de Conversation AI en GHL y contraste con memoria existente en BDC | Auditoría completada en solo lectura; sin llamadas a modelos ni herramientas API/MCP; ver `docs/rea-agentes-ia-bdc-2026-11-26.md` |
+| REA-04 | P2 | REA + AI + Backend + Producto | REA de Conversation AI en GHL y contraste con memoria existente en BDC | Investigación funcional de solo lectura completada; captura formal de cuenta no retenida por `cleanup_incomplete`; sin llamadas a modelos ni herramientas API/MCP; ver nota enlazada |
 | CRM-07 | P3 | AI + Backend + Frontend + QA | Implementar varios agentes de texto sencillos tipo Conversation AI con memoria inyectada | Futuro y separado de REA-04; UX mínima, un interruptor prender/apagar por agente, KB opcional, solo modelos OpenAI; sin acciones API ni MCP |
 
 P0/P1 son tareas de continuidad de Admin, seguridad y obtención de evidencia. P2/P3 expanden el CRM; pueden dividirse en historias de diseño, API, UI y validación por cada equipo.
