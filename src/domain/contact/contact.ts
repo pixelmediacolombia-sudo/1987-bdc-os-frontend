@@ -21,7 +21,10 @@ export type ContactMessage = {
   id: string
   direction: string
   senderType: string
+  senderUserId?: string | null
+  senderName?: string | null
   content: string
+  status?: string
   createdAt: string
 }
 

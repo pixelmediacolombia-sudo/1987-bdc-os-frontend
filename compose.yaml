@@ -77,8 +77,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        VITE_LOCAL_MESSAGE_SIMULATOR: "true"
     environment:
       BACKEND_HOST: backend
     ports:

@@ -101,7 +101,7 @@ Estado 2026-11-26 — cerrado localmente: la entrega incluye CRUD de contactos, 
 
 Modelo de conversación/mensaje, integración de canales ya soportados, estado leído/no leído, asignación, equipo/cola, búsqueda, respuesta con identidad correcta y fallos/reintentos visibles. Aceptación: Messenger/Instagram/WhatsApp conservan canal y dealer, webhooks idempotentes, permisos por tenant y lectura/escritura demostrada en entorno de prueba.
 
-Estado 2026-11-26: el frontend local lista conversaciones por dealer, búsqueda y canal, abre historial persistido y permite cambiar asignación y estado leído/no leído mediante API. El compositor nuevo guarda respuestas solo en localStorage del navegador, por dealer/conversación; incluye aviso explícito, manejo/reintento ante fallo de almacenamiento e idempotencia por identificador de solicitud. El E2E sintético cubre guardado, fallo/reintento, recarga y ausencia de POST; no demuestra persistencia de servidor. El backend revisado no expone POST de mensajes: siguen pendientes endpoint/modelo, identidad de salida, fallos/reintentos de API y E2E con dos dealers. No se enviaron mensajes a Meta.
+Estado 2026-11-26: CRM-02 cerrado localmente. El backend expone POST tenant-scoped para respuestas, guarda remitente y estado, usa clave idempotente por conversación y envía por el proveedor Meta del dealer. Los rechazos definitivos permiten reintentar con la misma clave; las entregas inciertas quedan bloqueadas para evitar duplicados. La prueba backend en PostgreSQL local cubre dos dealers, remitente, persistencia, clave repetida/conflicto, rechazo/reintento y resultado incierto; el E2E UI verifica estados y persistencia al recargar. No se enviaron mensajes reales durante las pruebas. Falta validación de producción.
 
 ### CRM-03 — Pipeline y oportunidades (P2)
 
@@ -126,7 +126,7 @@ Definir métricas con fuentes de verdad, ventana temporal y zona horaria; entreg
 1. CAPI-01 y REA-01 pueden arrancar en paralelo; no habilitar envíos productivos durante el levantamiento.
 2. ADM-07 y ADM-08 llevan el panel actual a un flujo productivo verificable.
 3. ADM-09 a ADM-12 cierran decisiones de plataforma/configuración antes de abrir controles sensibles.
-4. REA-02 ya cubrió localmente las APIs, rutas, workers y persistencia del backend; se difiere solo el SHA desplegado. CRM-01 quedó cerrado localmente. Continuar con CRM-02 en local, empezando por el contrato backend para envío/persistencia de mensajes, identidad del remitente e idempotencia; después CRM-03/04 y finalmente CRM-05/06 según dependencias.
+4. REA-02 y CRM-01/CRM-02 quedaron cerrados localmente; la verificación de producción sigue pendiente. Continuar con CRM-03/04 y después CRM-05/06 según dependencias.
 5. Cada paquete se cierra con PR/commit sobre las ramas de trabajo existentes, checks acordados, evidencia de aislamiento por dealer y nota de despliegue cuando aplique. No se ha iniciado ninguno de estos paquetes en esta actualización documental.
 
 ## Referencias retenidas

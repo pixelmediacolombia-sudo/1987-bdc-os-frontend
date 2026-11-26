@@ -373,43 +373,47 @@ test('dealer can create a contact when phone is missing but email identifies the
   expect(createBody).toMatchObject({ dealerId, displayName: 'Contacto con datos mínimos', phone: null, email: 'qa-contact@example.test' })
 })
 
-test('dealer inbox lists local conversations and opens persisted message history', async ({ page }, testInfo) => {
+test('dealer inbox persists replies through the server with delivery and retry states', async ({ page }, testInfo) => {
   const dealerId = '11111111-1111-4111-8111-111111111111'
   const contactId = '33333333-3333-4333-8333-333333333333'
   const conversationId = '55555555-5555-4555-8555-555555555555'
   const assigneeId = '66666666-6666-4666-8666-666666666666'
-  let messagePosts = 0
+  const replyId = '77777777-7777-4777-8777-777777777777'
+  const messages: Array<Record<string, unknown>> = [
+    { id: 'message-inbound-e2e', direction: 'inbound', senderType: 'contact', content: 'Hola, quiero conocer el inventario.', createdAt: '2026-11-25T10:00:00.000Z', status: 'received' },
+    { id: 'message-outbound-e2e', direction: 'outbound', senderType: 'agent', senderName: 'Asesor Comercial', content: 'Claro, ¿qué tipo de vehículo buscas?', createdAt: '2026-11-25T10:05:00.000Z', status: 'sent' },
+  ]
+  const messagePosts: Array<{ clientMessageId: string; content: string }> = []
   let isRead = false
   let assignedUserId: string | null = null
   await page.setViewportSize({ width: 1536, height: 900 })
-  await page.addInitScript(() => {
-    if (sessionStorage.getItem('crm-local-reply-test-initialized') !== 'yes') {
-      localStorage.clear()
-      sessionStorage.setItem('crm-local-reply-test-initialized', 'yes')
-    }
-    const originalSetItem = Storage.prototype.setItem
-    let failNextLocalReply = true
-    Storage.prototype.setItem = function (key: string, value: string) {
-      if (failNextLocalReply && key.startsWith('bdc-os:local-replies:')) {
-        failNextLocalReply = false
-        throw new DOMException('Synthetic local storage failure', 'QuotaExceededError')
-      }
-      return originalSetItem.call(this, key, value)
-    }
-  })
   await page.route('**/backend/auth/session', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ authenticated: true, user: { id: 'dealer-user-inbox', email: 'asesor@dealer.local', displayName: 'Asesor Bandeja', accountType: 'user' } }),
+    body: JSON.stringify({ authenticated: true, user: { id: 'dealer-user-inbox', email: 'asesor@dealer.example', displayName: 'Asesor Comercial', accountType: 'user' } }),
   }))
   await page.route('**/backend/auth/contacts/dealers', (route) => route.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer Inbox Local' }] }),
+    status: 200, contentType: 'application/json', body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer San Rafael' }] }),
   }))
   await page.route('**/backend/auth/conversations**', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
-    if (url.pathname.endsWith('/assignees')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ assignees: [{ id: assigneeId, displayName: 'Asesora Local' }] }) })
-    if (request.method() === 'POST') { messagePosts += 1; return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'No existe un endpoint de envío en la simulación local.' }) }) }
+    if (url.pathname.endsWith('/assignees')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ assignees: [{ id: assigneeId, displayName: 'Asesora Comercial' }] }) })
+    if (request.method() === 'POST') {
+      const body = request.postDataJSON() as { clientMessageId: string; content: string }
+      messagePosts.push(body)
+      const message = { id: replyId, direction: 'outbound', senderType: 'agent', senderUserId: 'dealer-user-inbox', senderName: 'Asesor Comercial', content: body.content, createdAt: '2026-11-26T10:10:00.000Z' }
+      if (messagePosts.length === 1) {
+        const failed = { ...message, status: 'failed' }
+        messages.push(failed)
+        return route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'No se pudo enviar el mensaje. Puedes intentarlo de nuevo.', message: failed }) })
+      }
+      const sent = { ...message, status: 'sent' }
+      const oldMessageIndex = messages.findIndex((item) => item.id === replyId)
+      if (oldMessageIndex >= 0) messages[oldMessageIndex] = sent
+      else messages.push(sent)
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ message: sent, replayed: false }) })
+    }
     if (request.method() === 'PATCH') {
       const body = request.postDataJSON() as { assignedUserId?: string | null; isRead?: boolean }
       if (Object.hasOwn(body, 'assignedUserId')) assignedUserId = body.assignedUserId ?? null
@@ -418,59 +422,59 @@ test('dealer inbox lists local conversations and opens persisted message history
     }
     if (request.method() === 'GET' && url.pathname.endsWith('/conversations')) return route.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{
-        id: conversationId, dealerId, contactId, contactName: 'Ana Prueba', phone: '+1 555 0100', channel: 'messenger',
-        owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', lastMessage: 'Hola, quiero conocer el inventario.', lastDirection: 'inbound',
-        assignedUserId, assignedUserName: assignedUserId ? 'Asesora Local' : null, isRead,
+        id: conversationId, dealerId, contactId, contactName: 'Ana Torres', phone: '+1 555 0100', channel: 'messenger',
+        owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', lastMessage: messages.at(-1)?.content ?? null, lastDirection: messages.at(-1)?.direction ?? null,
+        assignedUserId, assignedUserName: assignedUserId ? 'Asesora Comercial' : null, isRead,
       }], total: 1, limit: 100, offset: 0 }),
     })
     return route.fallback()
   })
   await page.route(`**/backend/auth/contacts/${contactId}?*`, (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ contact: {
-      id: contactId, dealerId, providerContactId: 'synthetic-inbox-contact', displayName: 'Ana Prueba', source: 'meta', phone: '+1 555 0100',
+      id: contactId, dealerId, providerContactId: 'provider-contact-ana', displayName: 'Ana Torres', source: 'meta', phone: '+1 555 0100',
       email: null, preferredLanguage: 'es', consentState: 'unknown', createdAt: '2026-11-25T09:00:00.000Z', updatedAt: '2026-11-25T09:00:00.000Z',
-      activities: [], conversations: [{ id: conversationId, channel: 'messenger', owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', messages: [
-        { id: 'message-inbound-e2e', direction: 'inbound', senderType: 'contact', content: 'Hola, quiero conocer el inventario.', createdAt: '2026-11-25T10:00:00.000Z' },
-        { id: 'message-outbound-e2e', direction: 'outbound', senderType: 'agent', content: 'Claro, ¿qué tipo de vehículo buscas?', createdAt: '2026-11-25T10:05:00.000Z' },
-      ] }],
+      activities: [], conversations: [{ id: conversationId, channel: 'messenger', owner: null, state: 'open', lastActivity: '2026-11-25T10:00:00.000Z', messages }],
     } }),
   }))
   await page.goto('/')
   await page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).click()
   await expect(page.getByRole('heading', { name: 'Bandeja' })).toBeVisible()
-  await expect(page.getByText('Revisa las conversaciones locales por canal, asignación y estado de lectura.')).toBeVisible()
+  await expect(page.getByText('Revisa las conversaciones por canal, asignación y estado de lectura.')).toBeVisible()
   await expect(page.locator('.sidebar .nav-item').filter({ hasText: 'Bandeja' }).locator('b')).toHaveCount(0)
   await expect(page.getByLabel('Dealer de la bandeja')).toHaveCount(0)
   await expect(page.getByText('ACCESO DEL DEALER')).toBeVisible()
+  await page.getByRole('button', { name: /Ana Torres/ }).click()
   await expect(page.getByText('Hola, quiero conocer el inventario.', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: /Ana Prueba/ }).click()
-  await expect(page.getByText('Claro, ¿qué tipo de vehículo buscas?', { exact: true })).toBeVisible()
-  await expect(page.getByText('La respuesta se guarda solo en este navegador; no se envía a Meta ni al servidor.')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Detalle de conversación' }).getByText('Claro, ¿qué tipo de vehículo buscas?', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Escribe tu mensaje')).toBeVisible()
   await expect(page.getByText('No leída', { exact: true })).toBeVisible()
   await page.getByLabel('Asignar conversación').selectOption(assigneeId)
-  await expect(page.getByText('Asignada a Asesora Local', { exact: true })).toBeVisible()
+  await expect(page.getByText('Asignada a Asesora Comercial', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Marcar leída' }).click()
   await expect(page.getByRole('button', { name: 'Marcar no leída' })).toBeVisible()
   await expect(page.getByText('No leída', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: 'No leídas' }).click()
   await expect(page.getByText('No hay conversaciones sin leer')).toBeVisible()
   await page.getByRole('button', { name: 'No leídas' }).click()
-  await page.getByLabel('Respuesta de prueba').fill('Respuesta sintética de la asesora.')
-  await page.getByRole('button', { name: 'Simular respuesta' }).click()
-  await expect(page.getByRole('alert')).toContainText('No pudimos guardar la respuesta simulada')
-  await expect(page.getByLabel('Respuesta de prueba')).toHaveValue('Respuesta sintética de la asesora.')
-  await page.getByRole('button', { name: 'Reintentar guardado' }).click()
-  await expect(page.locator('.inbox-message.simulated').getByText('Respuesta sintética de la asesora.', { exact: true })).toBeVisible()
-  await expect(page.getByRole('status')).toContainText('Respuesta simulada localmente. No se envió a Meta.')
+  await page.getByLabel('Escribe tu mensaje').fill('Respuesta desde la bandeja.')
+  await page.getByRole('button', { name: 'Enviar mensaje' }).click()
+  await expect(page.getByRole('alert')).toContainText('No se pudo enviar el mensaje')
+  await expect(page.locator('.inbox-message.delivery-failed')).toContainText('No enviado')
+  await expect(page.getByLabel('Escribe tu mensaje')).toHaveValue('Respuesta desde la bandeja.')
+  await page.getByRole('button', { name: 'Reintentar envío' }).click()
+  await expect(page.locator('.inbox-message.outbound').getByText('Respuesta desde la bandeja.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('Mensaje enviado.')
   await expect(page.locator('.inbox-message.outbound')).toHaveCount(2)
+  await expect.poll(() => messagePosts.length).toBe(2)
+  expect(messagePosts[1]?.clientMessageId).toBe(messagePosts[0]?.clientMessageId)
+  expect(messagePosts[1]?.content).toBe(messagePosts[0]?.content)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Bandeja' })).toBeVisible()
-  await expect(page.getByText('Respuesta sintética de la asesora.', { exact: true })).toBeVisible()
-  await expect(page.getByText('Asignada a Asesora Local', { exact: true })).toBeVisible()
+  await expect(page.getByText('Respuesta desde la bandeja.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Asignada a Asesora Comercial', { exact: true })).toBeVisible()
   await page.locator('.inbox-conversation-card').click()
-  await expect(page.getByText('Claro, ¿qué tipo de vehículo buscas?', { exact: true })).toBeVisible()
-  await expect(page.locator('.inbox-message.simulated').getByText('Respuesta sintética de la asesora.', { exact: true })).toBeVisible()
-  await expect(page.locator('.inbox-conversation-card')).toContainText('Respuesta sintética de la asesora.')
-  expect(messagePosts).toBe(0)
-  await page.screenshot({ path: testInfo.outputPath('crm02-inbox-local.png'), fullPage: true })
+  await expect(page.getByRole('region', { name: 'Detalle de conversación' }).getByText('Claro, ¿qué tipo de vehículo buscas?', { exact: true })).toBeVisible()
+  await expect(page.locator('.inbox-message.outbound').getByText('Respuesta desde la bandeja.', { exact: true })).toBeVisible()
+  await expect(page.locator('.inbox-conversation-card')).toContainText('Respuesta desde la bandeja.')
+  await page.screenshot({ path: testInfo.outputPath('crm02-inbox.png'), fullPage: true })
 })

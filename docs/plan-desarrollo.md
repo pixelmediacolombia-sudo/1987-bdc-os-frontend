@@ -7,7 +7,7 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-00 · Entorno local e identidad | Compose aislado; PostgreSQL y Redis; cuentas `admin`/`user`; un admin global; usuarios vinculados a dealers (`tenants`); hash de contraseña de prueba en `.env` local | Servicios saludables; el admin se crea una vez desde `.env`; secretos fuera de Git |
 | FE-01 · Shell CRM | Navegación, espacio de trabajo, búsqueda, dashboard, cola de atención y estados de demostración | Responsive; acciones demo funcionan; datos ficticios claramente identificados |
 | FE-02 · Acceso y empresas | Inicio de sesión, sesiones seguras, invitación/creación de usuarios y asignación a dealer; permisos del admin global y separación por tenant | Pruebas de autorización y aislamiento entre dos tenants |
-| FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición, timeline persistido y oportunidades vinculadas; Bandeja CRM-02: listado, lectura, asignación, estado leído/no leído y compositor de simulación local | CRM-01 cerrado localmente: E2E UI sintético y prueba API/RLS con dos dealers cubren ficha, actividad de oportunidad y vínculo; la prueba de backend confirma rechazo cross-tenant. La UI E2E simula HTTP y no prueba RLS. Bandeja: lectura/asignación por API y simulación local en navegador probadas; falta endpoint y persistencia de mensajes, entrega, fallos/reintentos de API e E2E de dos dealers |
+| FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición, timeline persistido y oportunidades vinculadas; Bandeja CRM-02: listado, lectura, asignación, estado leído/no leído, respuesta persistida y estados de entrega | CRM-01 cerrado localmente con E2E UI y prueba API/RLS de dos dealers. CRM-02 cerrado localmente: respuesta autenticada por Meta, remitente asociado, persistencia, idempotencia, rechazo/reintento y estado incierto; E2E backend de dos dealers y E2E UI con respuesta HTTP controlada. No se enviaron mensajes reales durante las pruebas; falta validación de producción |
 | FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Flujo local validado e2e: alta, cambio de etapa y responsable, auditoría, historial, métricas de Inicio y aislamiento entre dealers |
 | FE-05 · Automatizaciones | Editor de flujos, disparadores, condiciones, acciones, ejecución y logs | Simulación local; idempotencia; fallas y reintentos cubiertos |
 | FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |
@@ -39,6 +39,7 @@ Criterios de aceptación para completar esta evolución:
 - Identificar los registros demo con nombres, teléfonos y notas ficticios; no reutilizar datos personales reales.
 - El seed debe ser idempotente y limitar cada inserción al tenant local de prueba. No se ejecuta en producción.
 - Cada escritura en frontend debe ir seguida de la reconstrucción y recreación del contenedor frontend local. Cada escritura en backend debe reconstruir y recrear el contenedor backend local para que el runtime coincida con el código.
+- Recordatorio: reconstruir y recrear el contenedor afectado después de cada cambio, antes de validar o continuar.
 
 ## Cierre local de FE-04 · Oportunidades
 

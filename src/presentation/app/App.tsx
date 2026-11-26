@@ -19,7 +19,7 @@ import '../styles/home-dashboard.css'
 import HomeDashboard from '../features/home/HomeDashboard'
 import OpportunitiesView from '../features/opportunities/OpportunitiesView'
 
-type DemoDealer = Dealer
+type DealerEntry = Dealer
 
 const ACTIVE_SECTION_KEY = 'bdc-os:active-section:'
 
@@ -43,11 +43,11 @@ function App() {
   const [active, setActive] = useState<Section>('Inicio')
   const [dealerStatusFilter, setDealerStatusFilter] = useState<'Todos' | DealerStatus>('Todos')
   const [search, setSearch] = useState('')
-  const [dealers, setDealers] = useState<DemoDealer[]>([])
+  const [dealers, setDealers] = useState<DealerEntry[]>([])
   const [adminLoading, setAdminLoading] = useState(true)
   const [adminError, setAdminError] = useState('')
   const [adminRetryCount, setAdminRetryCount] = useState(0)
-  const [selectedDealer, setSelectedDealer] = useState<DemoDealer | null>(null)
+  const [selectedDealer, setSelectedDealer] = useState<DealerEntry | null>(null)
   const [creatingDealer, setCreatingDealer] = useState(false)
   function retryAdminLoad() {
     setAdminLoading(true)
@@ -61,7 +61,7 @@ function App() {
       if (user) { setAuthUser(user); setActive(activeSectionFor(user)); setAuthStatus('signed-in') }
       else setAuthStatus('signed-out')
     }).catch(() => {
-      if (mounted) { setAuthError('No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.'); setAuthStatus('signed-out') }
+      if (mounted) { setAuthError('No pudimos conectar con el servicio de acceso. Revisa tu conexión e inténtalo de nuevo.'); setAuthStatus('signed-out') }
     })
     return () => { mounted = false }
   }, [])
@@ -90,7 +90,7 @@ function App() {
       setActive(activeSectionFor(user))
       setAuthStatus('signed-in')
     } catch (cause) {
-      setAuthError(cause instanceof Error ? cause.message : 'No pudimos conectar con el servicio de acceso. Revisa que el backend local esté activo.')
+      setAuthError(cause instanceof Error ? cause.message : 'No pudimos conectar con el servicio de acceso. Revisa tu conexión e inténtalo de nuevo.')
     }
   }
   async function signOut() {

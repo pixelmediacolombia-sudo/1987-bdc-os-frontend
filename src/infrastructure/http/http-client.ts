@@ -1,10 +1,12 @@
 export class HttpError extends Error {
   readonly status: number
+  readonly payload: Record<string, unknown>
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, payload: Record<string, unknown>) {
     super(message)
     this.name = 'HttpError'
     this.status = status
+    this.payload = payload
   }
 }
 
@@ -45,8 +47,8 @@ export class HttpClient {
 
   private async send<T>(path: string, options: RequestOptions): Promise<T> {
     const response = await this.request(`${this.basePath}${path}`, { ...options, credentials: 'include' })
-    const payload = await response.json().catch(() => ({})) as { error?: string }
-    if (!response.ok) throw new HttpError(payload.error ?? 'No pudimos conectar con BDC OS.', response.status)
+    const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+    if (!response.ok) throw new HttpError(typeof payload.error === 'string' ? payload.error : 'No pudimos conectar con BDC OS.', response.status, payload)
     return payload as T
   }
 }

@@ -23,7 +23,6 @@ export default function LoginScreen({ error, onSubmit }: LoginScreenProps) {
         {error && <p className="login-error" role="alert">{error}</p>}
         <button className="login-submit" type="submit" disabled={submitting}>{submitting ? 'Validando…' : 'Entrar'}<span aria-hidden="true">→</span></button>
       </form>
-      <p className="login-local-note"><i /> Entorno local de pruebas</p>
       <footer>BDC OS CRM <span>·</span> 1987 Marketing &amp; Films</footer>
     </section>
     <aside className="login-side">
