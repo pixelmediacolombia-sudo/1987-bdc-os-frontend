@@ -246,7 +246,7 @@ test('dealer users can browse, create, edit, and inspect contact history', async
   await expect(page.getByRole('dialog', { name: 'Andrea Gómez' })).toBeVisible()
   await expect(page.getByText('Registro manual · Sin conexión a Meta')).toBeVisible()
   await expect(page.getByText('Se creó el contacto manual.')).toBeVisible()
-  await expect(page.getByText('SUV familiar de Andrea')).toBeVisible()
+  await expect(page.getByText('SUV familiar de Andrea', { exact: true })).toBeVisible()
   await expect(page.getByText('Se creó la oportunidad SUV familiar de Andrea.')).toBeVisible()
   await page.getByRole('button', { name: 'Editar' }).click()
   const edit = page.getByRole('dialog', { name: 'Editar contacto' })
