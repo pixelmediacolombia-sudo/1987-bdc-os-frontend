@@ -1,6 +1,6 @@
 # Backlog derivado de REA para distribuir
 
-**Corte:** 21 de noviembre de 2026 (America/Bogota)
+**Corte original:** 21 de noviembre de 2026 (America/Bogota). Estados CRM/REA locales revisados al 26 de noviembre de 2026.
 **Propósito:** convertir la revisión de REA, el estado del repositorio y los pendientes Admin/CAPI en paquetes de trabajo asignables.
 **Repos:** frontend `main`; backend `master`.
 
@@ -20,7 +20,7 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 |---|---|---|---|---|
 | CAPI-01 | P0 | Backend + Plataforma + QA | Conciliar tokens antiguos Render por tenant y fuente segura de credenciales | Pendiente; worker de producción permanece apagado |
 | ADM-07 | P0 | Plataforma + Frontend + QA | Publicar frontend y validar el panel Admin contra el backend productivo | Pendiente; backend ya está en producción |
-| REA-01 | P0 | REA + QA | Capturar BDC OS local por roles Admin/dealer, estados y llamadas de red | Pendiente; usar versión y sesión autorizadas |
+| REA-01 | P0 | REA + QA | Capturar BDC OS local por roles Admin/dealer, estados y llamadas de red | Captura representativa local realizada para ambos roles; ampliar expiración, errores y escenarios que faltan antes del cierre exhaustivo; ver `docs/avance-p0-local-2026-11-25.md` |
 | ADM-08 | P1 | Backend + Plataforma + QA | Completar y verificar invitaciones con SMTP/`BDC_APP_URL` de producción | Pendiente de variables y prueba autorizada |
 | ADM-09 | P1 | Frontend + Backend + Producto | Separar Salud del sistema de Configuración global y definir su alcance | Pendiente de decisión funcional |
 | ADM-10 | P1 | Backend + Frontend + QA | Diseñar controles, alertas y límites de plataforma con auditoría | Pendiente de reglas y responsables |
@@ -28,9 +28,9 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 | ADM-12 | P1 | Producto + Seguridad + Backend | Decidir cuentas de soporte, roles y permisos | Pendiente de decisión de negocio |
 | REA-02 | P1 | REA + Backend + QA | Ampliar el mapa de backend más allá de `identity` | Mapa estático local de los 124 archivos de implementación completado; contraste con SHA desplegado diferido a la etapa final; ver `docs/rea-02-backend-local-2026-11-25.md` |
 | REA-03 | P1 | REA + Producto | Comparar configuración real de GHL con BDC OS | Pendiente de acceso observacional autorizado a GHL |
-| CRM-01 | P2 | Frontend + Backend | Contactos y ficha 360 con historial persistido por tenant | Placeholder frontend; requiere contrato y API |
-| CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | Placeholder frontend; definir eventos y operación |
-| CRM-03 | P2 | Frontend + Backend | Pipeline/Oportunidades persistidas y cambios auditables | Alta de oportunidad actual es demo en memoria |
+| CRM-01 | P2 | Frontend + Backend | Contactos y ficha 360 con historial persistido por tenant | En progreso local: CRUD/timeline y E2E UI de paginación, filtros, búsqueda, orden y alta sin teléfono; estos E2E usan HTTP sintético. Completar auditoría/relaciones e integración de aislamiento descritas en el cierre del 25/11 |
+| CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | En progreso local: lectura, asignación y estado leído/no leído vía API; compositor local guarda en localStorage por dealer/conversación, con retry e idempotencia probados. Sin envío ni persistencia backend; falta endpoint de mensajes, identidad de salida y E2E con dos dealers |
+| CRM-03 | P2 | Frontend + Backend | Pipeline/Oportunidades persistidas y cambios auditables | Cerrado local FE-04: alta, etapa, responsable, auditoría, historial, Inicio y aislamiento entre dealers; validación productiva queda para la puerta final |
 | CRM-04 | P2 | Frontend + Backend | Calendario, disponibilidad, citas y zona horaria | Placeholder frontend; requiere reglas de dealer |
 | CRM-05 | P3 | Backend + Frontend + QA | Automatizaciones con disparadores, acciones, logs y reintentos | Placeholder frontend; depende de dominio/eventos |
 | CRM-06 | P3 | Backend + Frontend + Datos | Reportes de operación con métricas trazables | Placeholder frontend; depende de datos reales |
@@ -91,21 +91,23 @@ Producto/Seguridad decide si el admin global único es suficiente. Si se requier
 
 ## Fichas de trabajo: CRM
 
-En el frontend, Inicio muestra datos ficticios y no consulta al backend; crear una oportunidad solo cambia memoria de sesión. CRM-01 ya tiene directorio, edición, auditoría y timeline de actividad persistido por tenant; sigue pendiente una integración E2E persistida en un entorno local con RLS completo. CRM-02 tiene ahora su primer corte local de lectura para la Bandeja; faltan asignación, no leídos y salida/reintentos. Oportunidades, Automatizaciones, Calendario y Reportes siguen como vistas por construir. Las historias CRM no deben considerarse implementadas porque aparezcan en el menú.
+Estado local actualizado al 26 de noviembre de 2026: Inicio y Oportunidades consumen APIs locales; FE-04 está cerrado localmente según `docs/plan-desarrollo.md`. CRM-01 incluye CRUD/timeline y E2E de interfaz con datos HTTP sintéticos para paginación, filtros, búsqueda, orden y creación con teléfono vacío/email presente; faltan criterios de cierre e integración de aislamiento. CRM-02 incluye listado/historial, asignación y lectura por API; el compositor añadido solo simula la respuesta en localStorage. Los E2E de estas vistas stubbean el backend y no prueban RLS. Falta envío/persistencia en servidor, fallos de API y E2E de dos dealers. Calendario, Automatizaciones y Reportes siguen como vistas por construir.
 
 ### CRM-01 — Contactos y ficha 360 (P2)
 
-Estado 2026-11-25: la entrega local incluye timeline persistido para alta y cambios de la ficha, con actor y resúmenes sin UUID expuestos. El E2E visual de contacto usa datos sintéticos y pasó. La prueba RLS integrada no alcanzó este escenario porque el contenedor candidato falla antes en una precondición existente de aislamiento de invitaciones; debe repetirse en una base local con la suite RLS completa habilitada. No se usaron contactos reales ni Meta. La verificación desplegada queda para la etapa final.
+Estado 2026-11-26: la entrega local incluye CRUD de contactos, timeline persistido para alta/cambios y pruebas con datos sintéticos. La nota P0 del 25/11 reporta E2E por API con usuario runtime `bdc`, denegación cross-tenant y Playwright local; esto actualiza el bloqueo de la prueba candidata descrito en la nota anterior. Hoy se añadieron E2E de interfaz con backend stub para paginación, canal/consentimiento, orden, búsqueda y alta sin teléfono cuando el correo identifica al contacto (3 escenarios CRM en verde junto con CRM-02; los 2 de Contactos pasaron). No validan RLS ni persistencia real. Siguen pendientes auditoría integral, duplicados y relaciones del timeline con conversación/oportunidad según el cierre del 25/11. No se usaron contactos reales ni Meta; despliegue queda para la etapa final.
 
 ### CRM-02 — Bandeja omnicanal (P2)
 
 Modelo de conversación/mensaje, integración de canales ya soportados, estado leído/no leído, asignación, equipo/cola, búsqueda, respuesta con identidad correcta y fallos/reintentos visibles. Aceptación: Messenger/Instagram/WhatsApp conservan canal y dealer, webhooks idempotentes, permisos por tenant y lectura/escritura demostrada en entorno de prueba.
 
-Estado 2026-11-25: primer corte local de solo lectura. `GET /auth/conversations` lista conversaciones y último mensaje dentro del dealer autorizado, con búsqueda y filtro de canal; Bandeja toma automáticamente el dealer vinculado a la sesión, muestra su nombre como contexto y abre el historial persistido, sin selector global. TypeScript y Playwright con datos sintéticos pasaron; las imágenes locales de backend y frontend se reconstruyeron y sus contenedores quedaron saludables. Pendiente: no leídos (el esquema actual no tiene campo de lectura), asignación estructurada (hoy `owner` es texto), equipos/colas, respuestas, fallos y reintentos. No se enviaron mensajes a Meta.
+Estado 2026-11-26: el frontend local lista conversaciones por dealer, búsqueda y canal, abre historial persistido y permite cambiar asignación y estado leído/no leído mediante API. El compositor nuevo guarda respuestas solo en localStorage del navegador, por dealer/conversación; incluye aviso explícito, manejo/reintento ante fallo de almacenamiento e idempotencia por identificador de solicitud. El E2E sintético cubre guardado, fallo/reintento, recarga y ausencia de POST; no demuestra persistencia de servidor. El backend revisado no expone POST de mensajes: siguen pendientes endpoint/modelo, identidad de salida, fallos/reintentos de API y E2E con dos dealers. No se enviaron mensajes a Meta.
 
 ### CRM-03 — Pipeline y oportunidades (P2)
 
 Etapas configurables con historial de transición, responsable, valor, próxima acción y vínculo con contacto/conversación; acciones de mover/crear/archivar con permisos. Aceptación: persistencia backend, aislamiento tenant, auditoría y regresión del flujo de calificación existente.
+
+Estado 2026-11-26: FE-04 cerrado localmente. El cierre del 25/11 reporta alta, cambio de etapa/responsable, auditoría, historial, métricas de Inicio y aislamiento con dos dealers sintéticos. El test UI de este frontend simula las respuestas HTTP; la prueba backend local es la evidencia de integración. Producción queda fuera de esta etapa.
 
 ### CRM-04 — Calendario y citas (P2)
 

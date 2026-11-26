@@ -7,7 +7,7 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-00 · Entorno local e identidad | Compose aislado; PostgreSQL y Redis; cuentas `admin`/`user`; un admin global; usuarios vinculados a dealers (`tenants`); hash de contraseña de prueba en `.env` local | Servicios saludables; el admin se crea una vez desde `.env`; secretos fuera de Git |
 | FE-01 · Shell CRM | Navegación, espacio de trabajo, búsqueda, dashboard, cola de atención y estados de demostración | Responsive; acciones demo funcionan; datos ficticios claramente identificados |
 | FE-02 · Acceso y empresas | Inicio de sesión, sesiones seguras, invitación/creación de usuarios y asignación a dealer; permisos del admin global y separación por tenant | Pruebas de autorización y aislamiento entre dos tenants |
-| FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición e historial; después bandeja CRM-02 | Contactos con permisos, auditoría, paginación y pruebas Docker locales; bandeja de escritura pendiente |
+| FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición e historial; Bandeja CRM-02: listado, lectura, asignación, estado leído/no leído y compositor de simulación local | Contactos: E2E Docker de filtros/paginación/alta con datos sintéticos; falta cerrar auditoría, relaciones y aislamiento. Bandeja: lectura/asignación por API y simulación local en navegador probadas; falta endpoint y persistencia de mensajes, entrega, fallos/reintentos de API e E2E de dos dealers |
 | FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial y búsqueda | Flujo local validado e2e: alta, cambio de etapa y responsable, auditoría, historial, métricas de Inicio y aislamiento entre dealers |
 | FE-05 · Automatizaciones | Editor de flujos, disparadores, condiciones, acciones, ejecución y logs | Simulación local; idempotencia; fallas y reintentos cubiertos |
 | FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |
@@ -42,7 +42,7 @@ Criterios de aceptación para completar esta evolución:
 
 ## Cierre local de FE-04 · Oportunidades
 
-- `npm run test:local:opportunities` levanta dos sesiones sintéticas y verifica creación, cambio de etapa, asignación, auditoría, historial y actualización de Inicio.
+- El E2E backend `npm run test:local:opportunities` levanta dos sesiones sintéticas y verifica creación, cambio de etapa, asignación, auditoría, historial y actualización de Inicio. Este script no está declarado en el `package.json` del frontend; ejecútalo desde el repositorio donde está definido.
 - El alcance por dealer se comprueba al listar oportunidades e Inicio, intentar acceso cruzado y consultar el historial de una oportunidad del otro dealer. La reasignación hacia un usuario ajeno se rechaza con HTTP 400; los listados e Inicio ajenos con HTTP 403; el historial de una oportunidad no visible con HTTP 404.
 - La prueba es solo local y limpia sus usuarios, sesiones, eventos y oportunidades de fixture al terminar. No elimina los registros sintéticos persistentes que se usan para las demostraciones.
 - La vista frontend tiene cobertura de interacción y recarga con `npx vitest run src/presentation/features/opportunities/OpportunitiesView.test.tsx`.
