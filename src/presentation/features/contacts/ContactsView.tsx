@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { ContactDealer, ContactDetail, ContactInput, ContactSummary } from '../../../domain/contact/contact'
-import type { Opportunity } from '../../../domain/opportunity/opportunity'
+import type { Opportunity, OpportunityActivity } from '../../../domain/opportunity/opportunity'
 import { contactInitials, contactLabel, contactReference } from '../../../domain/contact/contact'
 import { appServices } from '../../../core/container'
 import Icon from '../../components/Icon'
@@ -19,8 +19,10 @@ export default function ContactsView({ search }: { search: string }) {
   const [sort, setSort] = useState<'recent' | 'name'>('recent')
   const [selected, setSelected] = useState<ContactDetail | null>(null)
   const [relatedOpportunities, setRelatedOpportunities] = useState<Opportunity[]>([])
+  const [opportunityActivities, setOpportunityActivities] = useState<Array<OpportunityActivity & { opportunityId: string }>>([])
   const [loadingRelatedOpportunities, setLoadingRelatedOpportunities] = useState(false)
   const [relatedOpportunitiesError, setRelatedOpportunitiesError] = useState('')
+  const [opportunityActivitiesError, setOpportunityActivitiesError] = useState(false)
   const [retryRelatedOpportunities, setRetryRelatedOpportunities] = useState(0)
   const [editing, setEditing] = useState<ContactDetail | null>(null)
   const [creating, setCreating] = useState(false)
@@ -34,12 +36,24 @@ export default function ContactsView({ search }: { search: string }) {
   const selectedDealer = dealers.find((dealer) => dealer.id === dealerId)
 
   useEffect(() => {
-    if (!selected) { setRelatedOpportunities([]); setRelatedOpportunitiesError(''); return }
+    if (!selected) { setRelatedOpportunities([]); setOpportunityActivities([]); setRelatedOpportunitiesError(''); setOpportunityActivitiesError(false); return }
     let active = true
     setLoadingRelatedOpportunities(true)
     setRelatedOpportunitiesError('')
-    appServices.opportunities.list(selected.dealerId).then((items) => {
-      if (active) setRelatedOpportunities(items.filter((item) => item.contactId === selected.id))
+    setOpportunityActivities([])
+    setOpportunityActivitiesError(false)
+    appServices.opportunities.list(selected.dealerId).then(async (items) => {
+      const linked = items.filter((item) => item.contactId === selected.id)
+      if (!active) return
+      setRelatedOpportunities(linked)
+      const histories = await Promise.allSettled(linked.map(async (opportunity) => ({
+        opportunityId: opportunity.id,
+        events: await appServices.opportunities.activity(selected.dealerId, opportunity.id),
+      })))
+      if (!active) return
+      setOpportunityActivities(histories.flatMap((result) => result.status === 'fulfilled'
+        ? result.value.events.map((event) => ({ ...event, opportunityId: result.value.opportunityId })) : []))
+      setOpportunityActivitiesError(histories.some((result) => result.status === 'rejected'))
     }).catch(() => {
       if (active) setRelatedOpportunitiesError('No pudimos cargar las oportunidades de este contacto.')
     }).finally(() => { if (active) setLoadingRelatedOpportunities(false) })
@@ -111,6 +125,10 @@ export default function ContactsView({ search }: { search: string }) {
 
   const from = total ? offset + 1 : 0
   const to = Math.min(offset + PAGE_SIZE, total)
+  const timelineEvents = useMemo(() => selected ? [
+    ...selected.activities.map((activity) => ({ ...activity, key: `contact:${activity.id}`, kind: 'contact' as const })),
+    ...opportunityActivities.map((activity) => ({ ...activity, key: `opportunity:${activity.opportunityId}:${activity.id}`, kind: 'opportunity' as const })),
+  ].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)).slice(0, 20) : [], [selected, opportunityActivities])
 
   return <main className="content contacts-view">
     <header className="page-heading">
@@ -148,8 +166,9 @@ export default function ContactsView({ search }: { search: string }) {
       <div className="drawer-top"><span className="eyebrow">FICHA 360</span><div><button className="secondary contact-edit-button" onClick={() => { setError(''); setEditing(selected) }}>Editar</button><button className="icon-button" aria-label="Cerrar ficha" onClick={() => setSelected(null)}><Icon name="close" /></button></div></div>
       <span className="drawer-avatar neutral">{contactInitials(contactLabel(selected))}</span><h2 id="contact-detail-title">{contactLabel(selected)}</h2><p>{selected.source === 'manual' ? 'Registro manual · Sin conexión a Meta' : `Contacto de Meta · ${contactReference(selected.providerContactId)}`}</p>
       <div className="contact-details-grid"><div><small>Teléfono</small><strong>{selected.phone || 'No disponible'}</strong></div><div><small>Correo</small><strong>{selected.email || 'No disponible'}</strong></div><div><small>Idioma</small><strong>{selected.preferredLanguage || 'No definido'}</strong></div><div><small>Consentimiento</small><strong>{consentLabel(selected.consentState)}</strong></div><div><small>Origen</small><strong>{selected.source === 'manual' ? 'Manual' : 'Meta'}</strong></div><div><small>Canales</small><strong>{selected.conversations.length ? [...new Set(selected.conversations.map((item) => channelNames[item.channel.toLowerCase()] || item.channel))].join(', ') : 'Sin conversaciones'}</strong></div></div>
-      <hr /><section className="contact-activity-section" aria-labelledby="contact-activity-title"><div className="contact-history-heading"><div><span className="eyebrow">ACTIVIDAD</span><strong id="contact-activity-title">{selected.activities.length} cambios recientes</strong></div></div>
-        {selected.activities.length ? <ol className="contact-activity-list">{selected.activities.map((activity) => <li className="contact-activity-item" key={activity.id}><span className={`contact-activity-marker ${activity.action === 'contact.created' ? 'created' : ''}`} aria-hidden="true"><Icon name={activity.action === 'contact.created' ? 'plus' : 'clock'} size={13} /></span><div><p>{activity.summary || 'Se actualizó la ficha del contacto.'}</p><small>{activity.actorName} · {formatDate(activity.createdAt)}</small></div></li>)}</ol> : <p className="contact-activity-empty">Los cambios que se hagan a esta ficha aparecerán aquí.</p>}
+      <hr /><section className="contact-activity-section" aria-labelledby="contact-activity-title"><div className="contact-history-heading"><div><span className="eyebrow">ACTIVIDAD</span><strong id="contact-activity-title">{timelineEvents.length} cambios recientes</strong></div></div>
+        {opportunityActivitiesError && <p className="contact-history-empty" role="status">No se pudo cargar la actividad de todas las oportunidades vinculadas.</p>}
+        {timelineEvents.length ? <ol className="contact-activity-list">{timelineEvents.map((activity) => { const created = activity.action === 'contact.created' || activity.action === 'opportunity.created'; return <li className="contact-activity-item" key={activity.key}><span className={`contact-activity-marker ${created ? 'created' : ''}`} aria-hidden="true"><Icon name={created ? 'plus' : 'clock'} size={13} /></span><div><p>{activity.summary || 'Se registró un cambio.'}</p><small>{activity.actorName} · {formatDate(activity.createdAt)}</small></div></li> })}</ol> : <p className="contact-activity-empty">Los cambios que se hagan a esta ficha aparecerán aquí.</p>}
       </section>
       <hr /><section className="contact-linked-opportunities" aria-labelledby="contact-opportunities-title"><div className="contact-history-heading"><div><span className="eyebrow">VENTAS</span><strong id="contact-opportunities-title">{relatedOpportunities.length} oportunidades vinculadas</strong></div></div>
         {loadingRelatedOpportunities ? <p className="contact-history-empty">Cargando oportunidades…</p> : relatedOpportunitiesError ? <p className="contact-linked-opportunities-error" role="alert">{relatedOpportunitiesError}<button className="secondary" onClick={() => setRetryRelatedOpportunities((value) => value + 1)}>Reintentar</button></p> : relatedOpportunities.length ? <ul className="contact-linked-opportunities-list">{relatedOpportunities.map((opportunity) => <li key={opportunity.id}><strong>{opportunity.title}</strong><span>{opportunityStageLabel(opportunity.stage)}</span></li>)}</ul> : <p className="contact-history-empty">Todavía no hay oportunidades asociadas a este contacto.</p>}

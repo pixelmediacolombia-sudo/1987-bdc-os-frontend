@@ -218,6 +218,12 @@ test('dealer users can browse, create, edit, and inspect contact history', async
       expectedCloseDate: null, notes: null, createdAt: manual.createdAt, updatedAt: manual.updatedAt,
     }] : [] }),
   }))
+  await page.route('**/backend/auth/opportunities/*/activity?*', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ activity: [{
+      id: 'opportunity-created-e2e', action: 'opportunity.created', actorName: 'Asesor E2E',
+      summary: 'Se creó la oportunidad SUV familiar de Andrea.', createdAt: '2026-11-24T11:05:00.000Z',
+    }] }),
+  }))
 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeVisible()
@@ -241,6 +247,7 @@ test('dealer users can browse, create, edit, and inspect contact history', async
   await expect(page.getByText('Registro manual · Sin conexión a Meta')).toBeVisible()
   await expect(page.getByText('Se creó el contacto manual.')).toBeVisible()
   await expect(page.getByText('SUV familiar de Andrea')).toBeVisible()
+  await expect(page.getByText('Se creó la oportunidad SUV familiar de Andrea.')).toBeVisible()
   await page.getByRole('button', { name: 'Editar' }).click()
   const edit = page.getByRole('dialog', { name: 'Editar contacto' })
   await edit.getByLabel('Nombre').fill('Andrea Gómez Editada')
