@@ -2,12 +2,18 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ContactSummary } from '../../../domain/contact/contact'
 import type { Opportunity, OpportunityActivity } from '../../../domain/opportunity/opportunity'
 import HomeDashboard from '../home/HomeDashboard'
 import OpportunitiesView from './OpportunitiesView'
 
 const dealer = { id: 'dealer-fe04', name: 'Dealer FE04 local' }
 const assignee = { id: 'user-fe04', displayName: 'Asesor FE04 local' }
+const contact: ContactSummary = {
+  id: 'contact-fe04', dealerId: dealer.id, providerContactId: 'synthetic-contact-fe04', displayName: 'Buyer FE04', source: 'manual',
+  phone: '+1 555 0199', email: 'buyer@example.test', preferredLanguage: 'es', consentState: 'unknown',
+  createdAt: '2026-11-26T10:00:00.000Z', updatedAt: '2026-11-26T10:00:00.000Z', conversationCount: 0, lastActivity: null, channels: [],
+}
 
 function localOpportunityApi() {
   let opportunities: Opportunity[] = []
@@ -15,6 +21,7 @@ function localOpportunityApi() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     if (url.endsWith('/auth/contacts/dealers')) return jsonResponse({ dealers: [dealer] })
+    if (url.includes('/auth/contacts?')) return jsonResponse({ contacts: [contact], total: 1, limit: 25, offset: 0 })
     if (url.includes('/auth/conversations/assignees?')) return jsonResponse({ assignees: [assignee] })
     if (url.includes('/auth/opportunities/') && url.includes('/activity?')) {
       const id = url.split('/auth/opportunities/')[1]?.split('/activity?')[0]
@@ -22,9 +29,9 @@ function localOpportunityApi() {
     }
     if (url.includes('/auth/opportunities?')) return jsonResponse({ opportunities: opportunities.filter((item) => item.dealerId === dealer.id) })
     if (url.endsWith('/auth/opportunities') && init?.method === 'POST') {
-      const body = JSON.parse(String(init.body)) as { title: string; contactName: string; contactPhone: string | null; amountCents: number; notes: string | null }
+      const body = JSON.parse(String(init.body)) as { title: string; contactId: string | null; contactName: string; contactPhone: string | null; amountCents: number; notes: string | null }
       const now = new Date().toISOString()
-      const created: Opportunity = { id: 'opportunity-fe04', dealerId: dealer.id, title: body.title, contactId: null, contactName: body.contactName, contactPhone: body.contactPhone, amountCents: String(body.amountCents), stage: 'new', assignedUserId: null, assignedUserName: null, expectedCloseDate: null, notes: body.notes, createdAt: now, updatedAt: now }
+      const created: Opportunity = { id: 'opportunity-fe04', dealerId: dealer.id, title: body.title, contactId: body.contactId, contactName: body.contactName, contactPhone: body.contactPhone, amountCents: String(body.amountCents), stage: 'new', assignedUserId: null, assignedUserName: null, expectedCloseDate: null, notes: body.notes, createdAt: now, updatedAt: now }
       opportunities = [created, ...opportunities]
       history.set(created.id, [{ id: 'created-fe04', action: 'opportunity.created', summary: `Se creó la oportunidad ${created.title}.`, actorName: assignee.displayName, createdAt: now }])
       return jsonResponse({ opportunity: created }, 201)
@@ -62,7 +69,7 @@ describe('flujo FE-04 de oportunidades con datos persistidos', () => {
     await user.click(screen.getByRole('button', { name: 'Nueva oportunidad' }))
     const dialog = screen.getByRole('dialog', { name: 'Nueva oportunidad' })
     await user.type(within(dialog).getByLabelText('Nombre de la oportunidad'), 'DEMO LOCAL SUV FE04')
-    await user.type(within(dialog).getByLabelText('Contacto'), 'DEMO LOCAL Cliente FE04')
+    await user.type(within(dialog).getByLabelText('Nombre del contacto'), 'DEMO LOCAL Cliente FE04')
     await user.type(within(dialog).getByLabelText('Teléfono'), '+1 555 0104')
     await user.clear(within(dialog).getByLabelText('Valor estimado (COP)'))
     await user.type(within(dialog).getByLabelText('Valor estimado (COP)'), '25000000')
@@ -88,6 +95,23 @@ describe('flujo FE-04 de oportunidades con datos persistidos', () => {
     await user.click(within(restoredCard).getByRole('button', { name: 'Historial' }))
     expect(await within(restoredCard).findByText(/cambió a working/)).toBeTruthy()
     expect(api.opportunities()).toHaveLength(1)
+  })
+
+  it('links a new opportunity to a contact from the current dealer', async () => {
+    const user = userEvent.setup()
+    const api = localOpportunityApi()
+    vi.stubGlobal('fetch', api.fetchMock)
+    render(<OpportunitiesView search="" />)
+
+    await user.click(await screen.findByRole('button', { name: 'Nueva oportunidad' }))
+    const dialog = screen.getByRole('dialog', { name: 'Nueva oportunidad' })
+    await user.type(within(dialog).getByLabelText('Nombre de la oportunidad'), 'Buyer SUV FE04')
+    await within(dialog).findByRole('option', { name: /Buyer FE04/ })
+    await user.selectOptions(within(dialog).getByLabelText('Vincular contacto existente'), contact.id)
+    await user.click(within(dialog).getByRole('button', { name: 'Crear oportunidad' }))
+
+    await screen.findByText('Buyer SUV FE04')
+    expect(api.opportunities()[0]).toMatchObject({ contactId: contact.id, contactName: 'Buyer FE04', contactPhone: '+1 555 0199' })
   })
 
   it('refleja en Inicio métricas y actividad que devuelve el dealer autenticado', async () => {

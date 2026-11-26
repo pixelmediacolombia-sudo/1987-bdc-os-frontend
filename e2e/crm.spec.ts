@@ -211,6 +211,13 @@ test('dealer users can browse, create, edit, and inspect contact history', async
     }
     return route.fallback()
   })
+  await page.route('**/backend/auth/opportunities?*', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ opportunities: manual ? [{
+      id: 'opportunity-linked-e2e', dealerId, title: 'SUV familiar de Andrea', contactId: manual.id, contactName: manual.displayName,
+      contactPhone: manual.phone, amountCents: '420000000', stage: 'working', assignedUserId: null, assignedUserName: null,
+      expectedCloseDate: null, notes: null, createdAt: manual.createdAt, updatedAt: manual.updatedAt,
+    }] : [] }),
+  }))
 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeVisible()
@@ -233,6 +240,7 @@ test('dealer users can browse, create, edit, and inspect contact history', async
   await expect(page.getByRole('dialog', { name: 'Andrea Gómez' })).toBeVisible()
   await expect(page.getByText('Registro manual · Sin conexión a Meta')).toBeVisible()
   await expect(page.getByText('Se creó el contacto manual.')).toBeVisible()
+  await expect(page.getByText('SUV familiar de Andrea')).toBeVisible()
   await page.getByRole('button', { name: 'Editar' }).click()
   const edit = page.getByRole('dialog', { name: 'Editar contacto' })
   await edit.getByLabel('Nombre').fill('Andrea Gómez Editada')
@@ -324,6 +332,9 @@ test('dealer can create a contact when phone is missing but email identifies the
   await page.route('**/backend/auth/session', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ authenticated: true, user: { id: 'dealer-user-minimal', email: 'qa@dealer.local', displayName: 'Asesor QA', accountType: 'user' } }),
+  }))
+  await page.route('**/backend/auth/opportunities?*', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ opportunities: [] }),
   }))
   await page.route('**/backend/auth/contacts**', async (route) => {
     const request = route.request()

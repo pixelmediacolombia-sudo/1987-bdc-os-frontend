@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ContactDealer, ContactDetail, ContactInput, ContactSummary } from '../../../domain/contact/contact'
+import type { Opportunity } from '../../../domain/opportunity/opportunity'
 import { contactInitials, contactLabel, contactReference } from '../../../domain/contact/contact'
 import { appServices } from '../../../core/container'
 import Icon from '../../components/Icon'
@@ -17,6 +18,10 @@ export default function ContactsView({ search }: { search: string }) {
   const [consentState, setConsentState] = useState('')
   const [sort, setSort] = useState<'recent' | 'name'>('recent')
   const [selected, setSelected] = useState<ContactDetail | null>(null)
+  const [relatedOpportunities, setRelatedOpportunities] = useState<Opportunity[]>([])
+  const [loadingRelatedOpportunities, setLoadingRelatedOpportunities] = useState(false)
+  const [relatedOpportunitiesError, setRelatedOpportunitiesError] = useState('')
+  const [retryRelatedOpportunities, setRetryRelatedOpportunities] = useState(0)
   const [editing, setEditing] = useState<ContactDetail | null>(null)
   const [creating, setCreating] = useState(false)
   const [loadingDealers, setLoadingDealers] = useState(true)
@@ -27,6 +32,19 @@ export default function ContactsView({ search }: { search: string }) {
   const [notice, setNotice] = useState('')
   const [retry, setRetry] = useState(0)
   const selectedDealer = dealers.find((dealer) => dealer.id === dealerId)
+
+  useEffect(() => {
+    if (!selected) { setRelatedOpportunities([]); setRelatedOpportunitiesError(''); return }
+    let active = true
+    setLoadingRelatedOpportunities(true)
+    setRelatedOpportunitiesError('')
+    appServices.opportunities.list(selected.dealerId).then((items) => {
+      if (active) setRelatedOpportunities(items.filter((item) => item.contactId === selected.id))
+    }).catch(() => {
+      if (active) setRelatedOpportunitiesError('No pudimos cargar las oportunidades de este contacto.')
+    }).finally(() => { if (active) setLoadingRelatedOpportunities(false) })
+    return () => { active = false }
+  }, [selected?.dealerId, selected?.id, retryRelatedOpportunities])
 
   useEffect(() => {
     let active = true
@@ -133,6 +151,9 @@ export default function ContactsView({ search }: { search: string }) {
       <hr /><section className="contact-activity-section" aria-labelledby="contact-activity-title"><div className="contact-history-heading"><div><span className="eyebrow">ACTIVIDAD</span><strong id="contact-activity-title">{selected.activities.length} cambios recientes</strong></div></div>
         {selected.activities.length ? <ol className="contact-activity-list">{selected.activities.map((activity) => <li className="contact-activity-item" key={activity.id}><span className={`contact-activity-marker ${activity.action === 'contact.created' ? 'created' : ''}`} aria-hidden="true"><Icon name={activity.action === 'contact.created' ? 'plus' : 'clock'} size={13} /></span><div><p>{activity.summary || 'Se actualizó la ficha del contacto.'}</p><small>{activity.actorName} · {formatDate(activity.createdAt)}</small></div></li>)}</ol> : <p className="contact-activity-empty">Los cambios que se hagan a esta ficha aparecerán aquí.</p>}
       </section>
+      <hr /><section className="contact-linked-opportunities" aria-labelledby="contact-opportunities-title"><div className="contact-history-heading"><div><span className="eyebrow">VENTAS</span><strong id="contact-opportunities-title">{relatedOpportunities.length} oportunidades vinculadas</strong></div></div>
+        {loadingRelatedOpportunities ? <p className="contact-history-empty">Cargando oportunidades…</p> : relatedOpportunitiesError ? <p className="contact-linked-opportunities-error" role="alert">{relatedOpportunitiesError}<button className="secondary" onClick={() => setRetryRelatedOpportunities((value) => value + 1)}>Reintentar</button></p> : relatedOpportunities.length ? <ul className="contact-linked-opportunities-list">{relatedOpportunities.map((opportunity) => <li key={opportunity.id}><strong>{opportunity.title}</strong><span>{opportunityStageLabel(opportunity.stage)}</span></li>)}</ul> : <p className="contact-history-empty">Todavía no hay oportunidades asociadas a este contacto.</p>}
+      </section>
       <hr /><div className="contact-history-heading"><div><span className="eyebrow">HISTORIAL</span><strong>{selected.conversations.length} conversaciones recientes</strong></div></div>
       {selected.conversations.length ? <div className="contact-history">{selected.conversations.map((conversation) => <section className="contact-conversation" key={conversation.id}><header><span>{channelNames[conversation.channel.toLowerCase()] || conversation.channel}</span><em>{conversation.state === 'open' ? 'Abierta' : conversation.state}</em></header><small>{formatDate(conversation.lastActivity)}{conversation.owner ? ` · ${conversation.owner}` : ''}</small>{conversation.messages.map((message) => <article className={`contact-message ${message.direction === 'outbound' ? 'outbound' : ''}`} key={message.id}><p>{message.content}</p><small>{message.direction === 'outbound' ? 'Equipo' : 'Contacto'} · {formatDate(message.createdAt)}</small></article>)}</section>)}</div> : <p className="contact-history-empty">Este contacto todavía no tiene mensajes registrados.</p>}
       <p className="contact-readonly-note">El historial de mensajes es de solo lectura. Las respuestas se habilitarán en la bandeja.</p>
@@ -202,4 +223,9 @@ function formatDate(value: string | null) {
 function consentLabel(value: string) {
   const labels: Record<string, string> = { granted: 'Otorgado', denied: 'No otorgado', unknown: 'Sin confirmar' }
   return labels[value.toLowerCase()] || 'Sin confirmar'
+}
+
+function opportunityStageLabel(value: string) {
+  const labels: Record<string, string> = { new: 'Nueva', working: 'En proceso', closing: 'Cierre', won: 'Ganada', lost: 'Perdida' }
+  return labels[value] || value
 }
