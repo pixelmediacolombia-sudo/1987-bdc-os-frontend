@@ -31,7 +31,7 @@ Los candidatos Admin recuperados por REA y contrastados en el router fuente incl
 | CRM-01 | P2 | Frontend + Backend | Contactos y ficha 360 con historial persistido por tenant | Cerrado localmente: CRUD/timeline, eventos de oportunidades vinculadas y E2E UI/API-RLS con dos dealers; producción pendiente |
 | CRM-02 | P2 | Frontend + Backend + Integraciones | Bandeja omnicanal de conversaciones y asignación | Cerrado localmente: respuestas persistidas, remitente, idempotencia, fallos/reintentos; `conversation.routes.ts` separado en módulos de listado, flujo y mensajes; E2E local de dos dealers pasó tras la segmentación. Producción pendiente |
 | CRM-03 | P2 | Frontend + Backend | Pipeline/Oportunidades persistidas y cambios auditables | Cerrado localmente: etapas renombrables y reordenables por dealer, próxima acción, archivado/restauración, auditoría e aislamiento E2E; producción pendiente |
-| CRM-04 | P2 | Frontend + Backend | Calendario, disponibilidad, citas y zona horaria | Placeholder frontend; requiere reglas de dealer |
+| CRM-04 | P2 | Frontend + Backend | Calendario, disponibilidad, citas y zona horaria | Cerrado localmente con `America/New_York`, persistencia, conflictos, DST y aislamiento; recordatorios se guardan, falta despacho de notificaciones y validación de producción |
 | CRM-05 | P3 | Backend + Frontend + QA | Automatizaciones con disparadores, acciones, logs y reintentos | Placeholder frontend; depende de dominio/eventos |
 | CRM-06 | P3 | Backend + Frontend + Datos | Reportes de operación con métricas trazables | Placeholder frontend; depende de datos reales |
 
@@ -113,6 +113,8 @@ Estado 2026-11-26: CRM-03 cerrado localmente. Además del alcance FE-04, cada de
 
 Citas ligadas a contacto/oportunidad, disponibilidad, zona horaria del dealer, confirmación/cancelación, recordatorios y estado de atención. Aceptación: reglas de horario explícitas, evitar doble reserva y validar desplazamientos de zona horaria; proveedor externo solo si se define.
 
+Estado 2026-11-26: CRM-04 cerrado localmente. El calendario semanal usa `America/New_York` para el mercado del este de Estados Unidos y permite configurar disponibilidad, crear citas enlazadas a contactos/oportunidades, asignar responsable, guardar detalles y gestionar estados. La API valida horas de atención, DST, solapamientos, pertenencia al dealer y permisos; registra auditoría. Los recordatorios quedan guardados con su hora calculada, pero todavía no se despachan por email/push. Se aplicó la zona a la operación del calendario y a nuevos dealers, sin migrar masivamente las zonas existentes. `APPOINTMENTS_E2E=1 npm run test:local:appointments` pasó 1/1 con dos dealers; `npx vitest run src/presentation/features/calendar/CalendarView.test.tsx` pasó 2/2 y el build frontend pasó. El contenedor frontend local se reconstruyó y recreó. Producción sigue pendiente.
+
 ### CRM-05 — Automatizaciones (P3)
 
 Diseñar primero catálogo de disparadores/condiciones/acciones; editor con activación/versionado, ejecución idempotente, scheduler/reintentos, logs y pausa/rollback. Reglas de consentimiento, límites de envío y aislamiento por dealer son requisitos iniciales, no remiendos posteriores.
@@ -126,7 +128,7 @@ Definir métricas con fuentes de verdad, ventana temporal y zona horaria; entreg
 1. CAPI-01 y REA-01 pueden arrancar en paralelo; no habilitar envíos productivos durante el levantamiento.
 2. ADM-07 y ADM-08 llevan el panel actual a un flujo productivo verificable.
 3. ADM-09 a ADM-12 cierran decisiones de plataforma/configuración antes de abrir controles sensibles.
-4. REA-02 y CRM-01/CRM-02/CRM-03 quedaron cerrados localmente; la verificación de producción sigue pendiente. Continuar con CRM-04 y después CRM-05/06 según dependencias.
+4. REA-02 y CRM-01/CRM-02/CRM-03/CRM-04 quedaron cerrados localmente; la verificación de producción sigue pendiente. Continuar con CRM-05 y después CRM-06 según dependencias.
 5. Cada paquete se cierra con PR/commit sobre las ramas de trabajo existentes, checks acordados, evidencia de aislamiento por dealer y nota de despliegue cuando aplique. No se ha iniciado ninguno de estos paquetes en esta actualización documental.
 
 ## Referencias retenidas

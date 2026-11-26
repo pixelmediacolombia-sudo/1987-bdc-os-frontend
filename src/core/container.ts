@@ -19,6 +19,7 @@ import { HttpAdminUserRepository } from '../infrastructure/admin-users/http-admi
 import { ListAdminUsers } from '../application/admin-users/list-admin-users'
 import { HttpContactRepository } from '../infrastructure/contacts/http-contact-repository'
 import { HttpOpportunityRepository } from '../infrastructure/opportunities/http-opportunity-repository'
+import { HttpAppointmentRepository } from '../infrastructure/appointments/http-appointment-repository'
 
 const http = new HttpClient('/backend')
 const authRepository = new HttpAuthRepository(http)
@@ -29,6 +30,7 @@ const systemHealthRepository = new HttpSystemHealthRepository(http)
 const adminUserRepository = new HttpAdminUserRepository(http)
 const contactRepository = new HttpContactRepository(http)
 const opportunityRepository = new HttpOpportunityRepository(http)
+const appointmentRepository = new HttpAppointmentRepository(http)
 
 export const appServices = {
   auth: {
@@ -67,5 +69,12 @@ export const appServices = {
     activity: (dealerId: string, id: string) => opportunityRepository.activity(dealerId, id),
     create: (input: import('../domain/opportunity/opportunity').OpportunityInput) => opportunityRepository.create(input),
     update: (dealerId: string, id: string, input: { stage?: import('../domain/opportunity/opportunity').OpportunityStage; assignedUserId?: string | null; nextAction?: string | null; nextActionAt?: string | null; archived?: boolean }) => opportunityRepository.update(dealerId, id, input),
+  },
+  appointments: {
+    availability: (dealerId: string) => appointmentRepository.availability(dealerId),
+    saveAvailability: (dealerId: string, availability: import('../domain/appointment/appointment').AvailabilityEntry[]) => appointmentRepository.saveAvailability(dealerId, availability),
+    list: (dealerId: string, from: Date, to: Date) => appointmentRepository.list(dealerId, from, to),
+    create: (input: import('../domain/appointment/appointment').AppointmentInput) => appointmentRepository.create(input),
+    update: (dealerId: string, id: string, input: Parameters<typeof appointmentRepository.update>[2]) => appointmentRepository.update(dealerId, id, input),
   },
 }

@@ -10,7 +10,7 @@ El frontend se implementa contra el backend propio y se prueba en la red Docker 
 | FE-03 · Contactos y bandeja | Contactos CRM-01: directorio tenant-scoped, creación/edición, timeline persistido y oportunidades vinculadas; Bandeja CRM-02: listado, lectura, asignación, estado leído/no leído, respuesta persistida y estados de entrega | CRM-01 y CRM-02 cerrados localmente con E2E UI/API de dos dealers. El backend de conversaciones quedó segmentado por listado, flujo y mensajes; su E2E de respuestas volvió a pasar tras la separación. No se enviaron mensajes reales durante las pruebas; falta validación de producción |
 | FE-04 · Pipeline | Tableros por etapas, oportunidades, asignación, historial, búsqueda, próxima acción y archivo | CRM-03 cerrado localmente: alta, cambios auditados, etiquetas/orden configurables por dealer, próxima acción persistida, archivado/restauración y aislamiento de dos dealers; falta validación de producción |
 | FE-05 · Automatizaciones | Editor de flujos, disparadores, condiciones, acciones, ejecución y logs | Simulación local; idempotencia; fallas y reintentos cubiertos |
-| FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | Permisos verificados y datos conectados a APIs propias |
+| FE-06 · Calendario, reportes y administración | Citas, tareas, métricas, equipos, permisos y configuración por empresa | CRM-04 calendario y citas cerrado localmente con API propia, zona `America/New_York`, validación de horarios, conflictos e aislamiento; reportes y otras áreas siguen pendientes |
 | FE-07 · Canales Meta | Conectar Messenger, Instagram y WhatsApp por dealer; manejar permisos, mensajes, adjuntos y reintentos | Simuladores locales y pruebas de integración cubren inbound, outbound, persistencia y colas |
 
 ## Evolución progresiva del inicio
@@ -47,6 +47,14 @@ Criterios de aceptación para completar esta evolución:
 - El alcance por dealer se comprueba al listar oportunidades e Inicio, intentar acceso cruzado y consultar el historial de una oportunidad del otro dealer. La reasignación hacia un usuario ajeno se rechaza con HTTP 400; los listados e Inicio ajenos con HTTP 403; el historial de una oportunidad no visible con HTTP 404.
 - La prueba es solo local y limpia sus usuarios, sesiones, eventos y oportunidades de fixture al terminar. No elimina los registros sintéticos persistentes que se usan para las demostraciones.
 - La vista frontend tiene cobertura de interacción y recarga con `npx vitest run src/presentation/features/opportunities/OpportunitiesView.test.tsx`.
+
+## Cierre local de CRM-04 · Calendario y citas
+
+- Calendario semanal conectado a la API local, con agenda diaria, indicador de hora actual, creación de citas vinculadas a contactos u oportunidades, responsable, ubicación, notas, recordatorio configurable y estados de atención. La disponibilidad semanal del dealer se puede consultar y guardar.
+- La aplicación opera con la zona horaria `America/New_York`, según la instrucción para el mercado del este de Estados Unidos. El backend valida horas laborables y fechas locales, rechaza horas ambiguas o inexistentes por cambio de horario (DST) y evita citas solapadas por dealer/responsable. Los nuevos dealers usan esa zona por defecto; no se hizo una migración masiva de zonas ya guardadas.
+- La API aplica alcance por dealer, valida vínculos de contacto/oportunidad y registra auditoría. Los recordatorios y su hora quedan persistidos; el despacho externo de notificaciones todavía no está conectado.
+- `APPOINTMENTS_E2E=1 npm run test:local:appointments` pasó 1/1 y cubre disponibilidad, conversión de horario de Nueva York a UTC, recordatorios, solapamiento, horario fuera de jornada, DST, cancelación y aislamiento de dos dealers. `CRM_REPLIES_E2E=1 npm run test:local:crm-replies` pasó 1/1 como regresión de CRM-02. La UI del calendario pasó 2/2 y `npm run build` terminó correctamente.
+- El contenedor frontend local se reconstruyó y recreó después de los cambios de código; backend y PostgreSQL locales permanecen fuera de producción. No se enviaron mensajes ni se desplegó a producción.
 
 ## Cierre local de CRM-03 · Pipeline
 
