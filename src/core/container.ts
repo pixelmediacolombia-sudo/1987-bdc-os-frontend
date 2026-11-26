@@ -20,6 +20,7 @@ import { ListAdminUsers } from '../application/admin-users/list-admin-users'
 import { HttpContactRepository } from '../infrastructure/contacts/http-contact-repository'
 import { HttpOpportunityRepository } from '../infrastructure/opportunities/http-opportunity-repository'
 import { HttpAppointmentRepository } from '../infrastructure/appointments/http-appointment-repository'
+import { HttpAutomationWorkflowRepository } from '../infrastructure/automations/http-automation-workflow-repository'
 
 const http = new HttpClient('/backend')
 const authRepository = new HttpAuthRepository(http)
@@ -31,6 +32,7 @@ const adminUserRepository = new HttpAdminUserRepository(http)
 const contactRepository = new HttpContactRepository(http)
 const opportunityRepository = new HttpOpportunityRepository(http)
 const appointmentRepository = new HttpAppointmentRepository(http)
+const automationWorkflowRepository = new HttpAutomationWorkflowRepository(http)
 
 export const appServices = {
   auth: {
@@ -76,5 +78,11 @@ export const appServices = {
     list: (dealerId: string, from: Date, to: Date) => appointmentRepository.list(dealerId, from, to),
     create: (input: import('../domain/appointment/appointment').AppointmentInput) => appointmentRepository.create(input),
     update: (dealerId: string, id: string, input: Parameters<typeof appointmentRepository.update>[2]) => appointmentRepository.update(dealerId, id, input),
+  },
+  automationWorkflows: {
+    list: (dealerId: string) => automationWorkflowRepository.list(dealerId),
+    get: (dealerId: string, id: string) => automationWorkflowRepository.get(dealerId, id),
+    create: (dealerId: string, name: string) => automationWorkflowRepository.create(dealerId, name),
+    saveDraft: (dealerId: string, workflow: import('../domain/automation/workflow').WorkflowRecord, name: string, definition: import('../domain/automation/workflow').WorkflowDefinition) => automationWorkflowRepository.saveDraft(dealerId, workflow, name, definition),
   },
 }

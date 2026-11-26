@@ -7,7 +7,7 @@ const paths: Record<IconName, ReactNode> = {
   users: <><circle cx="9" cy="8" r="3" /><path d="M3 20c.5-3.4 2.4-5 6-5s5.5 1.6 6 5m1-14a3 3 0 0 1 0 6m1 3c2.2.5 3.4 2 3.8 5" /></>,
   pipeline: <><rect x="3" y="4" width="6" height="6" rx="1" /><rect x="15" y="14" width="6" height="6" rx="1" /><path d="M9 7h3a3 3 0 0 1 3 3v4m-2-2 2 2 2-2" /></>,
   target: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><path d="m12 12 8-8m-4 0h4v4" /></>,
-  workflow: <><rect x="3" y="3" width="6" height="5" rx="1" /><rect x="15" y="16" width="6" height="5" rx="1" /><rect x="3" y="16" width="6" height="5" rx="1" /><path d="M6 8v3m0 0h9m0 0V8m0 3v5m0 0h-6m6 0h3m-2-2 2 2-2 2" /></>,
+  workflow: <><rect x="3" y="5" width="6" height="6" rx="1" /><rect x="15" y="13" width="6" height="6" rx="1" /><path d="M9 8h2a3 3 0 0 1 3 3v2h1m-2-2 2 2 2-2" /></>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4m10-4v4M3 10h18m-13 4h2m4 0h2m-8 3h2" /></>,
   chart: <><path d="M4 20V4m0 16h16M7 15l4-4 3 2 5-6" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="m19 13 2 1-2 4-2-1-2 1v2H9v-2l-2-1-2 1-2-4 2-1v-2l-2-1 2-4 2 1 2-1V4h6v2l2 1 2-1 2 4-2 1z" /></>,
