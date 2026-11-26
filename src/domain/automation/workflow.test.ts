@@ -42,4 +42,18 @@ describe('automation workflow graph validation', () => {
     expect(codes).toContain('invalid_edge')
     expect(codes).toContain('cycle')
   })
+
+  it('accepts connected waits and rejects out-of-range durations', () => {
+    const graph = completeWorkflow()
+    const yesEnd = graph.nodes.find((node) => node.id === ids.yes)!
+    const waitId = '00000000-0000-4000-8000-000000000005'
+    graph.nodes.push({ id: waitId, type: 'flow.wait', position: { x: 600, y: 100 }, config: { durationSeconds: 60 } })
+    const trueEdge = graph.edges.find((edge) => edge.sourcePort === 'true')!
+    trueEdge.target = waitId
+    graph.edges.push({ id: '10000000-0000-4000-8000-000000000005', source: waitId, sourcePort: 'next', target: yesEnd.id, targetPort: 'in' })
+    expect(validateWorkflow(graph)).toEqual([])
+    const wait = graph.nodes.find((node) => node.id === waitId)!
+    if (wait.type === 'flow.wait') wait.config.durationSeconds = 0
+    expect(validateWorkflow(graph).some((issue) => issue.code === 'invalid_node' && issue.nodeId === waitId)).toBe(true)
+  })
 })

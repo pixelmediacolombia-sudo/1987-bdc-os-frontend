@@ -38,12 +38,15 @@ describe('automation workflow canvas', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Añadir trigger' }))
     await user.click(screen.getByRole('button', { name: /Condición IF/ }))
+    await user.click(screen.getByRole('button', { name: /EsperarPausa y reanuda/ }))
     await user.click(screen.getByRole('button', { name: /FinCierra una ruta/ }))
     await user.click(screen.getByRole('button', { name: /FinCierra una ruta/ }))
 
-    await user.click(screen.getByRole('button', { name: 'Salida siguiente del trigger' }))
+    await user.click(screen.getByRole('button', { name: 'Salida siguiente de Evento de CRM' }))
     await user.click(screen.getByRole('button', { name: 'Entrada de Condición IF' }))
     await user.click(screen.getByRole('button', { name: 'Salida verdadero' }))
+    await user.click(screen.getByRole('button', { name: 'Entrada de Esperar' }))
+    await user.click(screen.getByRole('button', { name: 'Salida siguiente de Esperar' }))
     await user.click(screen.getAllByRole('button', { name: 'Entrada de Fin de ruta' })[0]!)
     await user.click(screen.getByRole('button', { name: 'Salida falso' }))
     await user.click(screen.getAllByRole('button', { name: 'Entrada de Fin de ruta' })[1]!)
@@ -52,8 +55,8 @@ describe('automation workflow canvas', () => {
     await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(1))
     const [, , savedName, savedDefinition] = mocks.saveDraft.mock.calls[0] as [string, WorkflowRecord, string, WorkflowDefinition]
     expect(savedName).toBe('Messenger follow-up')
-    expect(savedDefinition.nodes).toHaveLength(4)
-    expect(savedDefinition.edges).toHaveLength(3)
+    expect(savedDefinition.nodes).toHaveLength(5)
+    expect(savedDefinition.edges).toHaveLength(4)
     expect(screen.getByText('Borrador guardado')).toBeTruthy()
   })
 })
