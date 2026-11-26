@@ -2,7 +2,9 @@
 
 **Corte:** 26 de noviembre de 2026
 **Objetivo:** investigar GHL y n8n, inventariar lo que BDC OS puede automatizar con el código actual, definir el canvas visual requerido y dividir el trabajo antes de implementar CRM-05.
-**Estado:** investigación y diseño preliminar; no se ha comenzado el motor ni el editor.
+**Estado:** investigación y diseño preliminar; no se ha comenzado el motor ni el editor. La observación autenticada de GHL avanzó en modo estrictamente de lectura: no se cambiaron workflows, no se probaron y no se publicaron.
+
+**Recordatorio operativo:** después de cada cambio de código se debe reconstruir y recrear el contenedor local afectado antes de validar o continuar. Este cambio solo modifica documentación, así que no requiere recarga del contenedor.
 
 ## Resumen ejecutivo
 
@@ -17,9 +19,10 @@ La base técnica actual todavía no incluye workflows, ejecución durable, sched
 ### Método y límites REA
 
 - **n8n:** REA abrió en Chromium temporal la documentación oficial del nodo HighLevel y capturó su árbol de accesibilidad. Evidencia de la captura: `ev_a24f0fab23b6da9bc0cff6247ecb5aedc0d0a5c05ccec77613e4c34c19d372ff`; padre completo: `ev_65d67ff3b9d0f6f8a69144cacc5aae5e82c43c31e51745b2e36a6733c10cf4f5`. La captura fue lectura de documentación pública, no ejecución de un workflow n8n.
-- **GHL:** se intentó captura REA en Chromium temporal sobre el walkthrough oficial. La página comenzó a cargar, pero la operación finalizó con `cleanup_incomplete` y REA no confirmó que liberara `browser_transport` y `browser_profile`. Por eso no se inicia otra captura REA que dependa de esos recursos hasta resolver su limpieza.
-- El Chrome de usuario no expone un endpoint CDP accesible para REA (`http://127.0.0.1:9222` no respondió). Por tanto **no se observó dentro de REA el Workflow Builder autenticado de GHL**. Las conclusiones de GHL abajo provienen de documentación oficial pública; se mantienen como levantamiento documental, no como observación directa de la app.
-- La documentación del Help Center de GHL usa el producto vigente en 2026; la UI concreta, funciones habilitadas para esta cuenta y licencias de cada integración deben confirmarse en la pasada REA de la cuenta.
+- **GHL, documentación y cuenta:** la captura REA en Chromium temporal del walkthrough oficial terminó con `cleanup_incomplete`; esa evidencia no se usa como si fuera una inspección runtime. Después, con autorización explícita del usuario, se inspeccionó el Workflow Builder autenticado en Chrome y solo se leyeron el listado, una carpeta y un workflow en borrador. No se tocaron workflows, no se usó Test, no se guardó ni publicó nada. La captura observacional se hizo en Chrome, no mediante REA; no tiene un ID de evidencia REA.
+- En la cuenta se observó la lista con carpetas para llamadas IA, WhatsApp IA, redes sociales IA, calendario, Live Chat/Web Chat, extracciones/custom tools y otras automatizaciones; además había dos workflows publicados con 3,742 y 1,982 inscripciones totales (ambos mostraban cero activos en ese momento). Se abrió únicamente el borrador `4.1 Agenda: Recordatorios (SIN email)`, que mostraba un canvas y acciones encadenadas: guardar enlace de reprogramación de cita, mover `Agenda Reunion`, enviar confirmación por WhatsApp y esperar un día. Se observó su estado Draft y cero inscripciones. Esto confirma el patrón del canvas y esos casos de uso, pero **no** el catálogo completo, los paneles de configuración, los ajustes, logs ni acciones publicadas.
+- La lista/canvas se observó en modo de lectura. No se cambió configuración, no se abrió prueba de ejecución y no se inspeccionaron workflows publicados. Una futura observación de más detalles debe preservar el mismo límite: inspeccionar sin editar, guardar, probar o publicar.
+- La UI y las funciones habilitadas varían según cuenta y permisos; los nombres concretos de acciones y disponibilidad deben confirmarse antes de declararlos soporte de BDC OS.
 
 ### Fuentes oficiales revisadas
 
@@ -35,6 +38,27 @@ n8n aporta el patrón de conexiones tipadas de nodos, ramas If/Switch, combinaci
 **Dirección para BDC OS:** conservar la claridad del journey de CRM de GHL y adoptar el canvas/nodos flexibles de n8n; especializarlos para dealer y permitir consultar contexto conversacional completo mediante interfaces tenant-scoped de BDC OS. El acceso a nuestra base de conversaciones no debe convertirse en un nodo de SQL libre para usuarios.
 
 ## Inventario de nodos y capacidades propuestas
+
+### Nodos canónicos compartidos entre GHL y n8n
+
+La regla de producto es fusionar en BDC OS los conceptos que ejecutan la misma función. GHL y n8n se conservan como nombres de referencia/origen en el catálogo, no como dos implementaciones duplicadas. Si dos conceptos tienen semántica o efectos distintos, se mantienen separados aunque visualmente se parezcan.
+
+| Nodo canónico BDC OS | Equivalente GHL | Equivalente n8n | Regla de fusión y límite |
+|---|---|---|---|
+| **Disparador de evento** | Triggers de contacto, respuesta, oportunidad, cita y cambios | Trigger nodes; Webhook Trigger | Un contrato común de evento tipado con salidas de datos. El webhook es una fuente de evento con autenticación específica, no una segunda copia de todos los triggers.
+| **Condición / bifurcación** | If/Else, filtros del trigger | If, Switch | Un solo nodo configurable para condición simple o múltiples casos nombrados. Mantener puertos de salida tipados (true/false o casos/default); no duplicar If y Switch si la misma UI cubre ambas formas.
+| **Esperar / reanudar** | Wait | Wait | Un nodo durable con duración, fecha o evento; debe persistir checkpoint y reanudar run. “Esperar respuesta” será modo por evento de este nodo o una extensión visible, no un sondeo distinto.
+| **Acción sobre registro CRM** | Acciones de contacto, asignación, oportunidad y cita | Operaciones del nodo HighLevel de n8n para contactos, oportunidades y calendarios | Fusionar por entidad/operación: contacto, oportunidad y cita son configuraciones del mismo grupo de acciones, pero no exponer CRUD genérico ni permitir registros fuera del dealer.
+| **Enviar mensaje al contacto** | Acciones de comunicación y WhatsApp/SMS/email según proveedor | Nodo de integración si existe para el canal; de lo contrario conector externo | Un nodo de salida BDC con política de canal, consentimiento, ventana, stop-on-response e idempotencia. No se fusiona con notificación interna.
+| **HTTP Request saliente** | Webhook/HTTP de salida o Custom Webhook action (según disponibilidad) | HTTP Request | Compartir un nodo HTTP saliente con credenciales seguras, allowlist, timeout y salidas éxito/error; proveedores registrados pueden dar una UI tipada encima.
+| **Webhook entrante** | Trigger de webhook entrante | Webhook Trigger | Mismo propósito de recibir una llamada externa; conservar como trigger, distinto de HTTP Request saliente por dirección y superficie de seguridad.
+| **Transformar datos** | Format/Math/Date u otras acciones utilitarias | Edit Fields/Set, Code | Un nodo de mapeo/formato tipado. No incorporar código arbitrario al MVP; el nodo Code de n8n es una capacidad avanzada que no equivale a una transformación segura de CRM.
+| **Leer contexto de conversación** | Filtros/acciones de conversación donde existan | No hay equivalente directo en el nodo HighLevel documentado | Nodo propio BDC que lee mensajes persistidos y entrega contexto limitado por dealer. No fusionar con Postgres/SQL libre.
+| **Tarea interna / aviso al equipo** | Create Task, internal notification | Create Task (HighLevel) o integración de notificación | Las tareas se pueden fusionar como una acción CRM cuando exista entidad/API BDC. Aviso interno queda distinto del mensaje externo por destinatario, canal y efectos.
+| **Subworkflow reutilizable** | Go To / salto a paso no equivale a llamar un workflow reutilizable | Execute Sub-workflow | Mantener separado y posponer: Go To cambia el punto del mismo grafo; subworkflow invoca otro workflow con contrato propio.
+| **Consulta de base de datos** | No se encontró equivalente de dealer en el catálogo observado/documentado | Postgres | No habilitar como nodo de usuario. BDC usa acciones/lecturas de dominio scoped por dealer; Postgres libre atraviesa el límite de seguridad y no es funcionalmente equivalente.
+
+La observación autenticada de GHL ya confirma de forma directa que su Advanced/Workflow Builder presenta canvas de nodos, acciones conectadas, espera y herramientas de zoom/fit-to-screen en el editor observado. El requisito de BDC OS es **Advanced Builder de canvas libre**, con una experiencia comparable a n8n: nodos posicionables, conexión visual entre puertos, ramas visibles, zoom/pan, minimapa/encuadre y configuración contextual. La lista de funciones de GHL no debe llevar a implementar un formulario lineal ni a copiar sus workflows.
 
 ### A. Inicio y disparadores
 
@@ -110,8 +134,8 @@ La implementación de Automatizaciones no empieza hasta cerrar la definición de
 
 | Subtarea | Entrega | Dependencias | Criterio de cierre |
 |---|---|---|---|
-| **CRM-05-A · REA GHL live** | Captura del Workflow Builder real: canvas, alta/config de trigger, catálogo visible de acciones, Wait/ramas, ajustes, test, draft/publish, versiones y logs. | Resolver limpieza REA (`browser_transport`/`browser_profile`) o una sesión autenticada conectable. | Cada hallazgo etiquetado como observado y con Evidence, límites/plan visibles; sin editar ni publicar workflows del usuario. |
-| **CRM-05-B · REA n8n y catálogo** | Terminar recorrido de docs de nodos esenciales e inventariar conectores útiles a dealer, niveles de riesgo y diferencias Community/Cloud cuando afecten. | Reabrir REA después de limpiar el proceso retenido; documentación pública sigue disponible. | Matriz de nodos oficial, operación, entradas/salidas y uso BDC; separar app nodes, triggers, core nodes, AI/subnodes y community nodes. |
+| **CRM-05-A · REA GHL live** | Observar el Workflow Builder autenticado: canvas, catálogo y configuración visible de triggers/acciones, Wait/ramas, ajustes, test, draft/publish, versiones y logs. Avance: listado/carpeta y un borrador de citas observados directamente en Chrome. | Continuar observación solo de lectura en workflows no publicados o vistas de catálogo; resolver la limpieza REA pendiente antes de llamar a futuras capturas una evidencia REA. | Cada hallazgo etiquetado como observado y con Evidence cuando REA lo capture, límites/plan visibles; nunca editar, probar, guardar ni publicar workflows del usuario. |
+| **CRM-05-B · REA n8n y catálogo** | Completar catálogo oficial de nodos/core y conectores útiles para dealer; se inició con la documentación oficial de HighLevel, If, Switch, Code, Webhook, Wait y Postgres. Definir qué equivalentes se fusionan en nodos canónicos BDC y cuáles conservan semántica distinta. | Documentación oficial n8n y límites de producto/hosting a contrastar. | Matriz oficial de nodos, operación, entradas/salidas y uso BDC; separar app nodes, triggers, core nodes, AI/subnodes y community nodes; documentar alias de origen sin duplicar nodos con la misma función. |
 | **CRM-05-C · Inventario de eventos BDC** | Contrato de eventos para contacto, inbound/outbound message, respuesta humana, asignación, oportunidad y cita; transacción/outbox, deduplicación y reingreso. | Verificar límites en los repos backend y reglas del modelo. | Schema versionado de eventos con tenantId, actor/origen, entidad, occurredAt, eventId, payload allowlist y tests. |
 | **CRM-05-D · Definición del canvas y workflow DSL** | UX del canvas y esquema persistente de nodos/aristas, puertos, posiciones, variables, validación y errores visibles. | CRM-05-A/B y C. | JSON versionable/migrable; nodos inválidos/ciclos/entradas huérfanas identificados antes de guardar/publicar; draft y publicado separados. |
 | **CRM-05-E · Motor durable** | Runs y steps, cola, ejecución en orden/ramas, esperas, cancelación, retry/backoff, dead-letter y replay. | Contrato de evento y DSL aprobados. | Ejecuta nodos reales; reinicio de proceso no pierde run; paso idempotente; fallo visible/recuperable; tenant aislado; pruebas de integración recorren el grafo persistido. |
