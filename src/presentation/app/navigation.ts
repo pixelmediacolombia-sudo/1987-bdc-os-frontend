@@ -2,7 +2,7 @@ import type { AccountType } from '../../domain/auth/auth-user'
 
 export type Section = 'Resumen' | 'Dealers' | 'Usuarios' | 'Actividad' | 'Inicio' | 'Bandeja' | 'Contactos' | 'Oportunidades' | 'Automatizaciones' | 'Calendario' | 'Reportes' | 'Configuración'
 
-export type IconName = 'home' | 'inbox' | 'users' | 'pipeline' | 'target' | 'workflow' | 'calendar' | 'chart' | 'settings' | 'search' | 'plus' | 'arrow' | 'clock' | 'phone' | 'mail' | 'dots' | 'chevron' | 'close' | 'menu' | 'spark'
+export type IconName = 'home' | 'inbox' | 'users' | 'pipeline' | 'target' | 'workflow' | 'calendar' | 'chart' | 'settings' | 'search' | 'plus' | 'arrow' | 'arrow-left' | 'clock' | 'phone' | 'mail' | 'dots' | 'chevron' | 'close' | 'menu' | 'spark'
 
 export type NavigationItem = { name: Section; icon: IconName; group: string }
 

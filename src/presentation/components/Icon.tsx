@@ -14,6 +14,7 @@ const paths: Record<IconName, ReactNode> = {
   search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
+  'arrow-left': <path d="M19 12H5m6 6-6-6 6-6" />,
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   phone: <><rect x="7" y="3" width="10" height="18" rx="2" /><path d="M10 6h4m-3 12h2" /></>,
   mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></>,

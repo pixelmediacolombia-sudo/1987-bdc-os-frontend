@@ -18,3 +18,5 @@
 .automation-editor-header .automation-title-group input{width:100%;min-height:42px;box-sizing:border-box;font-size:16px}
 @media(max-width:1100px){.automation-editor-header .automation-title-group{width:min(50vw,420px);min-width:min(260px,50vw)}}
 @media(max-width:720px){.automation-editor-header .automation-title-group{width:auto;min-width:0}.automation-editor-header .automation-title-group input{min-height:38px;font-size:14px}}
+.automation-canvas-shell{touch-action:none;cursor:grab}.automation-canvas-shell.is-panning{cursor:grabbing;user-select:none}.automation-editor-header .automation-draft-badge{transform:translateY(10px)}
+.automation-minimap{position:absolute;z-index:3;right:auto;bottom:auto;float:none;margin:0}

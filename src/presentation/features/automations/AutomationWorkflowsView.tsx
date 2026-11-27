@@ -24,11 +24,17 @@ const NODE_HEIGHT = 136
 
 type Props = { search: string }
 type DragState = { id: string; pointerId: number; x: number; y: number; originX: number; originY: number }
+type PanState = { pointerId: number; x: number; y: number; scrollLeft: number; scrollTop: number }
 const CANVAS_WIDTH = 1800
 const CANVAS_HEIGHT = 1150
 const MINIMAP_INSET = 12
 const MINIMAP_WIDTH = 124
 const MINIMAP_HEIGHT = 70
+const MINIMAP_FRAME_WIDTH = 150
+const MINIMAP_FRAME_HEIGHT = 96
+const MINIMAP_RIGHT = 14
+const MINIMAP_BOTTOM = 12
+const EDITOR_WORKFLOW_KEY = 'bdc-os:automation-editor:'
 
 export default function AutomationWorkflowsView({ search }: Props) {
   const [dealers, setDealers] = useState<ContactDealer[]>([])
@@ -42,13 +48,16 @@ export default function AutomationWorkflowsView({ search }: Props) {
   const [error, setError] = useState('')
   const [nameDraft, setNameDraft] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [isPanning, setIsPanning] = useState(false)
   const [zoom, setZoom] = useState(0.9)
   const [connectFrom, setConnectFrom] = useState<{ nodeId: string; port: 'next' | 'true' | 'false' } | null>(null)
   const [connectMessage, setConnectMessage] = useState('')
   const [savedNotice, setSavedNotice] = useState('')
   const canvasRef = useRef<HTMLDivElement>(null)
+  const minimapRef = useRef<HTMLDivElement>(null)
   const minimapViewportRef = useRef<HTMLSpanElement>(null)
   const dragRef = useRef<DragState | null>(null)
+  const panRef = useRef<PanState | null>(null)
   const editorOpen = definition !== null
 
   useEffect(() => {
@@ -56,8 +65,11 @@ export default function AutomationWorkflowsView({ search }: Props) {
     if (!shell) return
 
     const updateViewport = () => {
+      const minimap = minimapRef.current
       const viewport = minimapViewportRef.current
-      if (!viewport) return
+      if (!minimap || !viewport) return
+      minimap.style.left = `${shell.scrollLeft + shell.clientWidth - MINIMAP_FRAME_WIDTH - MINIMAP_RIGHT}px`
+      minimap.style.top = `${shell.scrollTop + shell.clientHeight - MINIMAP_FRAME_HEIGHT - MINIMAP_BOTTOM}px`
       const contentWidth = Math.max(shell.scrollWidth, shell.clientWidth)
       const contentHeight = Math.max(shell.scrollHeight, shell.clientHeight)
       const width = Math.min(MINIMAP_WIDTH, shell.clientWidth / contentWidth * MINIMAP_WIDTH)
@@ -94,6 +106,12 @@ export default function AutomationWorkflowsView({ search }: Props) {
     if (!dealerId) return
     let mounted = true
     setLoading(true); setError(''); setWorkflow(null); setDefinition(null)
+    const savedWorkflowId = (() => { try { return window.sessionStorage.getItem(`${EDITOR_WORKFLOW_KEY}${dealerId}`) } catch { return null } })()
+    if (savedWorkflowId) appServices.automationWorkflows.get(dealerId, savedWorkflowId).then((result) => {
+      if (mounted) { setWorkflow(result.workflow); setDefinition(result.workflow.draft.definition) }
+    }).catch(() => {
+      try { window.sessionStorage.removeItem(`${EDITOR_WORKFLOW_KEY}${dealerId}`) } catch { /* The editor can still open without browser storage. */ }
+    })
     appServices.automationWorkflows.list(dealerId).then((result) => { if (mounted) setItems(result) })
       .catch((cause: unknown) => { if (mounted) setError(cause instanceof Error ? cause.message : 'No pudimos cargar las automatizaciones.') })
       .finally(() => { if (mounted) setLoading(false) })
@@ -109,6 +127,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
     try {
       const result = await appServices.automationWorkflows.get(dealerId, id)
       setWorkflow(result.workflow); setDefinition(result.workflow.draft.definition); setSelectedNodeId(null)
+      try { window.sessionStorage.setItem(`${EDITOR_WORKFLOW_KEY}${dealerId}`, id) } catch { /* The editor can still open without browser storage. */ }
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'No pudimos abrir el borrador.') }
   }
 
@@ -120,6 +139,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
     try {
       const result = await appServices.automationWorkflows.create(dealerId, name)
       setWorkflow(result.workflow); setDefinition(result.workflow.draft.definition)
+      try { window.sessionStorage.setItem(`${EDITOR_WORKFLOW_KEY}${dealerId}`, result.workflow.id) } catch { /* The editor can still open without browser storage. */ }
       setItems((current) => [{ id: result.workflow.id, name: result.workflow.name, draftRevision: result.workflow.draft.revision, publishedRevision: null, updatedAt: result.workflow.draft.updatedAt }, ...current])
       setNameDraft(''); setShowCreate(false); setSelectedNodeId(null)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'No pudimos crear el borrador.') }
@@ -189,17 +209,37 @@ export default function AutomationWorkflowsView({ search }: Props) {
   }
 
   function moveNode(event: PointerEvent<HTMLElement>) {
+    const pan = panRef.current
+    if (pan && pan.pointerId === event.pointerId) {
+      const shell = canvasRef.current
+      if (shell) { shell.scrollLeft = pan.scrollLeft - (event.clientX - pan.x); shell.scrollTop = pan.scrollTop - (event.clientY - pan.y) }
+      return
+    }
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId) return
     const dx = (event.clientX - drag.x) / zoom; const dy = (event.clientY - drag.y) / zoom
     setDefinition((current) => current ? { ...current, nodes: current.nodes.map((node) => node.id === drag.id ? { ...node, position: { x: Math.max(0, drag.originX + dx), y: Math.max(0, drag.originY + dy) } } : node) } : current)
   }
 
-  function endMove(event: PointerEvent<HTMLElement>) { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null }
+  function startPan(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    const target = event.target as HTMLElement
+    if (target.closest('button,input,select,textarea,a,[role="button"],.automation-node')) return
+    const shell = event.currentTarget
+    event.preventDefault()
+    shell.setPointerCapture(event.pointerId)
+    panRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, scrollLeft: shell.scrollLeft, scrollTop: shell.scrollTop }
+    setIsPanning(true)
+  }
+
+  function endMove(event: PointerEvent<HTMLElement>) {
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null
+    if (panRef.current?.pointerId === event.pointerId) { panRef.current = null; setIsPanning(false) }
+  }
 
   if (workflow && definition) return <section className="automation-editor automation-editor--fullscreen">
     <header className="automation-editor-header">
-      <button className="automation-back" onClick={() => { setWorkflow(null); setDefinition(null); setConnectFrom(null); setError('') }} aria-label="Volver a automatizaciones"><Icon name="arrow" size={16} /><span>Volver</span></button>
+      <button className="automation-back" onClick={() => { setWorkflow(null); setDefinition(null); setConnectFrom(null); setError(''); try { window.sessionStorage.removeItem(`${EDITOR_WORKFLOW_KEY}${dealerId}`) } catch { /* Navigation still works without browser storage. */ } }} aria-label="Volver a automatizaciones"><Icon name="arrow-left" size={16} /><span>Volver</span></button>
       <div className="automation-title-group"><label className="automation-name-label" htmlFor="workflow-name">Nombre del borrador</label><input id="workflow-name" value={definition.name} maxLength={120} onChange={(event) => setDefinition((current) => current ? { ...current, name: event.target.value } : current)} /></div>
       <span className="automation-draft-badge">Borrador · v{workflow.draft.revision}</span>
       <div className="automation-save-actions"><span role="status">{saving ? 'Guardando…' : savedNotice}</span><button className="primary" disabled={saving || !definition.name.trim()} onClick={() => void saveDraft()}>Guardar borrador</button><button className="secondary" disabled title="Disponible cuando el motor y los nodos CRM estén listos.">Publicar</button></div>
@@ -216,7 +256,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
       </aside>
       <div className="automation-workspace">
         <div className="automation-canvas-toolbar"><div><span className="automation-status-dot" /> Borrador sin publicar <span className="automation-separator">·</span> Nueva York</div><div className="automation-canvas-tools"><button aria-label="Alejar" onClick={() => setZoom((value) => Math.max(.55, Math.round((value - .1) * 10) / 10))}>−</button><span>{Math.round(zoom * 100)}%</span><button aria-label="Acercar" onClick={() => setZoom((value) => Math.min(1.35, Math.round((value + .1) * 10) / 10))}>+</button><button onClick={() => { setZoom(.9); if (canvasRef.current) canvasRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' }) }}>Ajustar</button></div></div>
-        <div className="automation-canvas-shell" ref={canvasRef} onPointerMove={moveNode} onPointerUp={endMove} onPointerCancel={endMove}>
+        <div className={`automation-canvas-shell${isPanning ? ' is-panning' : ''}`} ref={canvasRef} onPointerDown={startPan} onPointerMove={moveNode} onPointerUp={endMove} onPointerCancel={endMove}>
           <div className="automation-canvas" style={{ transform: `scale(${zoom})` }} onClick={(event) => { if (event.target === event.currentTarget) { setSelectedNodeId(null); setConnectMessage('') } }}>
             <svg className="automation-edges" width="1800" height="1150" aria-hidden="true">{definition.edges.map((edge) => {
               const source = definition.nodes.find((node) => node.id === edge.source); const target = definition.nodes.find((node) => node.id === edge.target)
@@ -234,7 +274,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
               {node.type !== 'flow.end' && <button className="automation-node-drag" aria-label={`Mover ${nodeTitle(node)}`} onPointerDown={(event) => startMove(event, node)} onPointerMove={moveNode} onPointerUp={endMove}><Icon name="dots" size={14} /></button>}
             </article>)}
           </div>
-          <div className="automation-minimap" aria-label="Minimapa del workflow">
+          <div className="automation-minimap" ref={minimapRef} aria-label="Minimapa del workflow">
             <span ref={minimapViewportRef} style={{ left: MINIMAP_INSET, top: MINIMAP_INSET, width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }} />
             {definition.nodes.map((node) => <i key={node.id} style={{ left: `${MINIMAP_INSET + node.position.x / CANVAS_WIDTH * MINIMAP_WIDTH}px`, top: `${MINIMAP_INSET + node.position.y / CANVAS_HEIGHT * MINIMAP_HEIGHT}px` }} />)}
           </div>

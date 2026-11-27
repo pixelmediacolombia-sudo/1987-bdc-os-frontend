@@ -23,6 +23,7 @@ function blankRecord(name: string): WorkflowRecord {
 describe('automation workflow canvas', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.sessionStorage.clear()
     mocks.listDealers.mockResolvedValue([{ id: '30000000-0000-4000-8000-000000000001', name: 'Stafford Motors' }])
     mocks.list.mockResolvedValue([])
     mocks.create.mockImplementation(async (_dealerId: string, name: string) => ({ workflow: blankRecord(name), validationIssues: [] }))
@@ -99,7 +100,8 @@ describe('automation workflow canvas', () => {
     await user.click(await screen.findByRole('button', { name: 'Añadir trigger' }))
 
     const canvasShell = document.querySelector('.automation-canvas-shell') as HTMLDivElement
-    const viewportIndicator = screen.getByLabelText('Minimapa del workflow').querySelector('span')!
+    const minimap = screen.getByLabelText('Minimapa del workflow') as HTMLDivElement
+    const viewportIndicator = minimap.querySelector('span')!
     expect(viewportIndicator.style.top).toBe('12px')
     Object.defineProperties(canvasShell, {
       clientWidth: { configurable: true, value: 600 }, clientHeight: { configurable: true, value: 400 },
@@ -111,5 +113,14 @@ describe('automation workflow canvas', () => {
 
     expect(viewportIndicator.style.top).not.toBe('12px')
     expect(viewportIndicator.style.left).not.toBe('12px')
+    expect(Number.parseFloat(minimap.style.left) - canvasShell.scrollLeft).toBe(436)
+    expect(Number.parseFloat(minimap.style.top) - canvasShell.scrollTop).toBe(292)
+
+    canvasShell.setPointerCapture = vi.fn()
+    fireEvent.pointerDown(canvasShell, { button: 0, pointerId: 7, clientX: 300, clientY: 300 })
+    fireEvent.pointerMove(canvasShell, { pointerId: 7, clientX: 300, clientY: 200 })
+    expect(canvasShell.scrollTop).toBe(500)
+    expect(viewportIndicator.style.top).not.toBe('12px')
+    fireEvent.pointerUp(canvasShell, { pointerId: 7 })
   })
 })

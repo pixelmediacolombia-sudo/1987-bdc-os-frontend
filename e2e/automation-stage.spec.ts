@@ -5,6 +5,7 @@ const dealerId = '30000000-0000-4000-8000-000000000001'
 const workflowId = '20000000-0000-4000-8000-000000000001'
 
 test('dealer configures an opportunity stage action and saves the draft', async ({ page }) => {
+  let savedWorkflow: { name: string; definition: unknown } | null = null
   await page.setViewportSize({ width: 1600, height: 1000 })
   await page.route('**/backend/auth/session', (route) => route.fulfill({
     status: 200,
@@ -22,6 +23,12 @@ test('dealer configures an opportunity stage action and saves the draft', async 
     if (request.method() === 'GET' && url.pathname.endsWith('/workflows')) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ workflows: [] }) })
     }
+    if (request.method() === 'GET' && url.pathname.endsWith(`/workflows/${workflowId}`) && savedWorkflow) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        workflow: { id: workflowId, name: savedWorkflow.name, draft: { revision: 2, definition: savedWorkflow.definition, updatedAt: '2026-11-27T12:05:00.000Z' }, published: null },
+        validationIssues: [],
+      }) })
+    }
     if (request.method() === 'POST') {
       const body = request.postDataJSON() as { name: string }
       const definition = { schemaVersion: 1, name: body.name, nodes: [], edges: [] }
@@ -32,6 +39,7 @@ test('dealer configures an opportunity stage action and saves the draft', async 
     }
     if (request.method() === 'PUT') {
       const body = request.postDataJSON() as { name: string; definition: unknown }
+      savedWorkflow = { name: body.name, definition: body.definition }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         workflow: { id: workflowId, name: body.name, draft: { revision: 2, definition: body.definition, updatedAt: '2026-11-27T12:05:00.000Z' }, published: null },
         validationIssues: [],
@@ -64,12 +72,28 @@ test('dealer configures an opportunity stage action and saves the draft', async 
   await page.getByRole('button', { name: 'Guardar borrador' }).click()
   await expect(page.getByText('Borrador guardado')).toBeVisible()
   const minimapViewport = page.getByLabel('Minimapa del workflow').locator('span')
+  const minimap = page.getByLabel('Minimapa del workflow')
   const canvasShell = page.locator('.automation-canvas-shell')
-  await canvasShell.hover()
-  await page.mouse.wheel(0, 320)
-  await expect.poll(() => minimapViewport.evaluate((element) => (element as HTMLElement).style.top)).not.toBe('12px')
-  await page.mouse.wheel(320, 0)
-  await expect.poll(() => minimapViewport.evaluate((element) => (element as HTMLElement).style.left)).not.toBe('12px')
+  const canvasBounds = await canvasShell.boundingBox()
+  const minimapBounds = await minimap.boundingBox()
+  if (!canvasBounds) throw new Error('Canvas shell is not visible')
+  if (!minimapBounds) throw new Error('Canvas minimap is not visible')
+  const panStart = { x: canvasBounds.x + 80, y: canvasBounds.y + 220 }
+  await page.mouse.move(panStart.x, panStart.y)
+  await page.mouse.down()
+  await page.mouse.move(panStart.x - 160, panStart.y - 130, { steps: 12 })
+  await page.mouse.up()
+  await expect.poll(() => canvasShell.evaluate((shell: HTMLElement) => shell.scrollLeft)).toBeGreaterThan(0)
+  await expect.poll(() => canvasShell.evaluate((shell: HTMLElement) => shell.scrollTop)).toBeGreaterThan(0)
+  await expect.poll(() => minimapViewport.evaluate((element) => Number.parseFloat((element as HTMLElement).style.top))).toBeGreaterThan(12)
+  await expect.poll(() => minimapViewport.evaluate((element) => Number.parseFloat((element as HTMLElement).style.left))).toBeGreaterThan(12)
+  await expect.poll(async () => {
+    const bounds = await minimap.boundingBox()
+    return bounds ? { x: bounds.x, y: bounds.y } : null
+  }).toEqual({ x: minimapBounds.x, y: minimapBounds.y })
   mkdirSync('output/evidence', { recursive: true })
   await page.screenshot({ path: 'output/evidence/crm-05-f-cambiar-etapa.png', fullPage: true })
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Volver a automatizaciones' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Nombre del borrador' })).toHaveValue('Oportunidad calificada → Ganada')
 })
