@@ -11,8 +11,8 @@ const STATUS_LABELS: Record<AutomationRunStatus, string> = {
 }
 const STEP_LABELS: Record<AutomationRunStep['status'], string> = { running: 'Procesando', succeeded: 'Completado', failed: 'Fallido', cancelled: 'Cancelado' }
 const NODE_LABELS: Record<AutomationRunStep['nodeType'], string> = {
-  'trigger.event': 'Trigger de evento', 'condition.if': 'Condición IF', 'flow.wait': 'Esperar',
-  'opportunity.update_stage': 'Cambiar etapa', 'flow.end': 'Fin de ruta',
+  'trigger.event': 'Trigger de evento', 'condition.if': 'Condición IF', 'condition.switch': 'Condición Switch', 'flow.wait': 'Esperar',
+  'opportunity.update_stage': 'Cambiar etapa', 'opportunity.assign': 'Asignar oportunidad', 'appointment.update_status': 'Cambiar estado de cita', 'contact.manage_tag': 'Gestionar etiqueta', 'contact.update_field': 'Actualizar campo', 'conversation.assign': 'Asignar conversación', 'flow.end': 'Fin de ruta',
 }
 
 export default function AutomationRunHistory({ dealerId, workflowId }: Props) {

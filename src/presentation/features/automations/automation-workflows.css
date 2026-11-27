@@ -33,6 +33,32 @@
 .automation-minimap-node--trigger-event{fill:#e3e8ed;stroke:#89939e}
 .automation-minimap-node--condition-if,.automation-minimap-node--flow-wait{fill:#f1eadb;stroke:#a48a59}
 .automation-minimap-node--opportunity-update_stage{fill:#e3e8ec;stroke:#687684}
+.automation-minimap-node--contact-manage_tag{fill:#f1eadb;stroke:#a48a59}
+.automation-minimap-node--contact-update_field{fill:#e8e8f1;stroke:#77758f}
+.automation-minimap-node--conversation-assign{fill:#e2edf0;stroke:#4d7b87}
 .automation-minimap-node--flow-end{fill:#e6ede4;stroke:#68806b}
 .automation-minimap>span{z-index:1;border-color:#46515d;background:#46515d0d;box-shadow:inset 0 0 0 1px #fff}
 @media(max-width:720px){.automation-minimap{right:8px;bottom:42px;width:150px;height:100px}}
+.automation-canvas-frame{position:relative;flex:none}
+.automation-canvas{position:absolute;top:0;left:0;width:1800px;height:1150px;transform-origin:0 0}
+.automation-node{cursor:grab;touch-action:none}
+.automation-node.is-dragging{z-index:4;cursor:grabbing;box-shadow:0 8px 22px #28334226}
+.automation-discard-dialog h2{max-width:360px;font-size:19px;line-height:1.3}
+.automation-discard-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.automation-discard-confirm{background:#8d3732!important;border-color:#8d3732!important}
+.automation-node-search{box-sizing:border-box;width:100%;min-height:38px;margin:0 0 12px;padding:0 11px;border:1px solid #dce1e7;border-radius:8px;background:#fff;color:#29313c;font:inherit;font-size:12px;outline:none}
+.automation-node-search:focus{border-color:#73859b;box-shadow:0 0 0 3px #73859b1c}
+.automation-node-search::placeholder{color:#8a929e}
+.automation-node-search-empty{margin:4px 0 12px;color:#778293;font-size:12px}
+.automation-minimap-node--opportunity-assign{fill:#e2edf0;stroke:#4d7b87}
+.automation-minimap-node--appointment-update_status{fill:#e8e8f1;stroke:#77758f}
+.automation-view-toggle{transform:translateY(10px)}
+.automation-branch-ports--switch{top:0;right:-9px;bottom:auto;display:block;height:100%}
+.automation-branch-ports--switch .automation-port--branch{position:absolute;right:0;display:grid;place-items:center;width:18px;height:18px;white-space:nowrap}
+.automation-node--condition-switch{min-height:170px}
+.node-icon--condition-switch{background:#f5f0e3;color:#92733a}
+.automation-switch-case{display:flex;align-items:end;gap:8px;margin-bottom:4px}
+.automation-switch-case .automation-field{flex:1;margin-bottom:10px}
+.automation-switch-remove{min-height:32px!important;margin-bottom:10px;padding:0 8px!important;font-size:10px!important}
+.automation-switch-add{width:100%;margin:0 0 10px}
+.automation-switch-default{display:block;margin:0 0 14px;color:#77818d;line-height:1.45}

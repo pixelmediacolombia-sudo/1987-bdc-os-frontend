@@ -6,6 +6,7 @@ export type ContactSummary = {
   providerContactId: string
   displayName: string | null
   source: 'meta' | 'manual'
+  tags?: string[]
   phone: string | null
   email: string | null
   preferredLanguage: string
