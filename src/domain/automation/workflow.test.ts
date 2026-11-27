@@ -56,4 +56,19 @@ describe('automation workflow graph validation', () => {
     if (wait.type === 'flow.wait') wait.config.durationSeconds = 0
     expect(validateWorkflow(graph).some((issue) => issue.code === 'invalid_node' && issue.nodeId === waitId)).toBe(true)
   })
+
+  it('accepts an opportunity stage action and rejects unknown stages', () => {
+    const graph = completeWorkflow()
+    const condition = graph.nodes.find((node) => node.type === 'condition.if')!
+    const yesEnd = graph.nodes.find((node) => node.id === ids.yes)!
+    const actionId = '00000000-0000-4000-8000-000000000006'
+    graph.nodes.push({ id: actionId, type: 'opportunity.update_stage', position: { x: 600, y: 30 }, config: { stage: 'working' } })
+    const yesEdge = graph.edges.find((edge) => edge.source === condition.id && edge.sourcePort === 'true')!
+    yesEdge.target = actionId
+    graph.edges.push({ id: '10000000-0000-4000-8000-000000000006', source: actionId, sourcePort: 'next', target: yesEnd.id, targetPort: 'in' })
+    expect(validateWorkflow(graph)).toEqual([])
+    const action = graph.nodes.find((node) => node.id === actionId)!
+    if (action.type === 'opportunity.update_stage') (action.config as { stage: string }).stage = 'unknown'
+    expect(validateWorkflow(graph).some((issue) => issue.code === 'invalid_node' && issue.nodeId === actionId)).toBe(true)
+  })
 })

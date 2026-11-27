@@ -5,13 +5,14 @@ export const AUTOMATION_EVENTS = [
 ] as const
 
 export type AutomationEvent = typeof AUTOMATION_EVENTS[number]
-export type WorkflowNodeType = 'trigger.event' | 'condition.if' | 'flow.wait' | 'flow.end'
+export type WorkflowNodeType = 'trigger.event' | 'condition.if' | 'flow.wait' | 'opportunity.update_stage' | 'flow.end'
 export type ConditionField = 'event.type' | 'event.origin' | 'contact.source' | 'message.channel' | 'conversation.status' | 'opportunity.stage' | 'appointment.status'
 export type ConditionOperator = 'equals' | 'not_equals' | 'contains' | 'is_empty' | 'is_not_empty'
 export type WorkflowNode =
   | { id: string; type: 'trigger.event'; position: { x: number; y: number }; config: { eventType: AutomationEvent } }
   | { id: string; type: 'condition.if'; position: { x: number; y: number }; config: { field: ConditionField; operator: ConditionOperator; value?: string } }
   | { id: string; type: 'flow.wait'; position: { x: number; y: number }; config: { durationSeconds: number } }
+  | { id: string; type: 'opportunity.update_stage'; position: { x: number; y: number }; config: { stage: 'new' | 'working' | 'closing' | 'won' | 'lost' } }
   | { id: string; type: 'flow.end'; position: { x: number; y: number }; config: { outcome: 'complete' | 'stop' } }
 export type WorkflowEdge = { id: string; source: string; sourcePort: 'next' | 'true' | 'false'; target: string; targetPort: 'in' }
 export type WorkflowDefinition = { schemaVersion: 1; name: string; nodes: WorkflowNode[]; edges: WorkflowEdge[] }
@@ -36,7 +37,7 @@ export function validateWorkflow(definition: WorkflowDefinition): WorkflowIssue[
   for (const edge of definition.edges) {
     const source = definition.nodes.find((node) => node.id === edge.source)
     const target = definition.nodes.find((node) => node.id === edge.target)
-    const validPort = source?.type === 'condition.if' ? edge.sourcePort === 'true' || edge.sourcePort === 'false' : (source?.type === 'trigger.event' || source?.type === 'flow.wait') && edge.sourcePort === 'next'
+    const validPort = source?.type === 'condition.if' ? edge.sourcePort === 'true' || edge.sourcePort === 'false' : source !== undefined && source.type !== 'flow.end' && edge.sourcePort === 'next'
     if (!source || !target || !ids.has(edge.source) || !ids.has(edge.target) || edge.targetPort !== 'in' || !validPort) {
       issues.push({ code: 'invalid_edge', message: 'Una conexión apunta a un nodo o puerto inexistente.', edgeId: edge.id }); continue
     }
@@ -50,6 +51,7 @@ export function validateWorkflow(definition: WorkflowDefinition): WorkflowIssue[
     if (node.type === 'trigger.event' && ins.length) issues.push({ code: 'invalid_edge', message: 'El trigger no admite entrada.', nodeId: node.id })
     if (node.type === 'flow.end' && outs.length) issues.push({ code: 'invalid_edge', message: 'El nodo de fin no admite salida.', nodeId: node.id })
     if (node.type === 'flow.wait' && (!Number.isInteger(node.config.durationSeconds) || node.config.durationSeconds < 1 || node.config.durationSeconds > 31_536_000)) issues.push({ code: 'invalid_node', message: 'La espera debe durar entre 1 segundo y 365 días.', nodeId: node.id })
+    if (node.type === 'opportunity.update_stage' && !['new', 'working', 'closing', 'won', 'lost'].includes(node.config.stage)) issues.push({ code: 'invalid_node', message: 'Selecciona una etapa válida para la oportunidad.', nodeId: node.id })
     if (ins.length > 1) issues.push({ code: 'multiple_incoming', message: 'Un nodo admite una sola entrada.', nodeId: node.id })
     if (node.type === 'condition.if') for (const port of ['true', 'false'] as const) {
       if (outs.filter((edge) => edge.sourcePort === port).length !== 1) issues.push({ code: 'missing_branch', message: `Conecta la salida ${port === 'true' ? 'Verdadero' : 'Falso'}.`, nodeId: node.id })

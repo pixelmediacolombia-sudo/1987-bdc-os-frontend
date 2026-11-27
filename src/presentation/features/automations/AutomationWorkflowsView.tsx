@@ -15,11 +15,20 @@ const OPERATOR_OPTIONS: Array<{ value: ConditionOperator; label: string }> = [
   { value: 'equals', label: 'es igual a' }, { value: 'not_equals', label: 'no es igual a' }, { value: 'contains', label: 'contiene' },
   { value: 'is_empty', label: 'está vacío' }, { value: 'is_not_empty', label: 'tiene un valor' },
 ]
+const OPPORTUNITY_STAGE_OPTIONS = [
+  { value: 'new', label: 'Nuevo' }, { value: 'working', label: 'En proceso' }, { value: 'closing', label: 'Cierre' },
+  { value: 'won', label: 'Ganada' }, { value: 'lost', label: 'Perdida' },
+] as const
 const NODE_WIDTH = 250
 const NODE_HEIGHT = 136
 
 type Props = { search: string }
 type DragState = { id: string; pointerId: number; x: number; y: number; originX: number; originY: number }
+const CANVAS_WIDTH = 1800
+const CANVAS_HEIGHT = 1150
+const MINIMAP_INSET = 12
+const MINIMAP_WIDTH = 124
+const MINIMAP_HEIGHT = 70
 
 export default function AutomationWorkflowsView({ search }: Props) {
   const [dealers, setDealers] = useState<ContactDealer[]>([])
@@ -38,7 +47,35 @@ export default function AutomationWorkflowsView({ search }: Props) {
   const [connectMessage, setConnectMessage] = useState('')
   const [savedNotice, setSavedNotice] = useState('')
   const canvasRef = useRef<HTMLDivElement>(null)
+  const minimapViewportRef = useRef<HTMLSpanElement>(null)
   const dragRef = useRef<DragState | null>(null)
+  const editorOpen = definition !== null
+
+  useEffect(() => {
+    const shell = canvasRef.current
+    if (!shell) return
+
+    const updateViewport = () => {
+      const viewport = minimapViewportRef.current
+      if (!viewport) return
+      const contentWidth = Math.max(shell.scrollWidth, shell.clientWidth)
+      const contentHeight = Math.max(shell.scrollHeight, shell.clientHeight)
+      const width = Math.min(MINIMAP_WIDTH, shell.clientWidth / contentWidth * MINIMAP_WIDTH)
+      const height = Math.min(MINIMAP_HEIGHT, shell.clientHeight / contentHeight * MINIMAP_HEIGHT)
+      const horizontalRange = Math.max(1, shell.scrollWidth - shell.clientWidth)
+      const verticalRange = Math.max(1, shell.scrollHeight - shell.clientHeight)
+      viewport.style.left = `${MINIMAP_INSET + shell.scrollLeft / horizontalRange * (MINIMAP_WIDTH - width)}px`
+      viewport.style.top = `${MINIMAP_INSET + shell.scrollTop / verticalRange * (MINIMAP_HEIGHT - height)}px`
+      viewport.style.width = `${width}px`
+      viewport.style.height = `${height}px`
+    }
+
+    const updateFrame = window.requestAnimationFrame(updateViewport)
+    shell.addEventListener('scroll', updateViewport, { passive: true })
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateViewport)
+    observer?.observe(shell)
+    return () => { window.cancelAnimationFrame(updateFrame); shell.removeEventListener('scroll', updateViewport); observer?.disconnect() }
+  }, [editorOpen, zoom])
 
   useEffect(() => {
     let mounted = true
@@ -116,6 +153,8 @@ export default function AutomationWorkflowsView({ search }: Props) {
         ? { id, type, position: { x: 400 + offset, y: 100 + offset }, config: { field: 'message.channel', operator: 'equals', value: 'messenger' } }
         : type === 'flow.wait'
           ? { id, type, position: { x: 650 + offset, y: 100 + offset }, config: { durationSeconds: 60 } }
+          : type === 'opportunity.update_stage'
+            ? { id, type, position: { x: 430 + offset, y: 100 + offset }, config: { stage: 'working' } }
           : { id, type, position: { x: 760 + offset, y: 100 + offset }, config: { outcome: 'complete' } }
     setDefinition((current) => current ? { ...current, nodes: [...current.nodes, node] } : current)
     setSelectedNodeId(id); setConnectMessage('')
@@ -158,9 +197,9 @@ export default function AutomationWorkflowsView({ search }: Props) {
 
   function endMove(event: PointerEvent<HTMLElement>) { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null }
 
-  if (workflow && definition) return <section className="automation-editor">
+  if (workflow && definition) return <section className="automation-editor automation-editor--fullscreen">
     <header className="automation-editor-header">
-      <button className="automation-back" onClick={() => { setWorkflow(null); setDefinition(null); setConnectFrom(null); setError('') }} aria-label="Volver a automatizaciones"><Icon name="arrow" size={16} /></button>
+      <button className="automation-back" onClick={() => { setWorkflow(null); setDefinition(null); setConnectFrom(null); setError('') }} aria-label="Volver a automatizaciones"><Icon name="arrow" size={16} /><span>Volver</span></button>
       <div className="automation-title-group"><label className="automation-name-label" htmlFor="workflow-name">Nombre del borrador</label><input id="workflow-name" value={definition.name} maxLength={120} onChange={(event) => setDefinition((current) => current ? { ...current, name: event.target.value } : current)} /></div>
       <span className="automation-draft-badge">Borrador · v{workflow.draft.revision}</span>
       <div className="automation-save-actions"><span role="status">{saving ? 'Guardando…' : savedNotice}</span><button className="primary" disabled={saving || !definition.name.trim()} onClick={() => void saveDraft()}>Guardar borrador</button><button className="secondary" disabled title="Disponible cuando el motor y los nodos CRM estén listos.">Publicar</button></div>
@@ -171,8 +210,9 @@ export default function AutomationWorkflowsView({ search }: Props) {
         <button onClick={() => addNode('trigger.event')} disabled={definition.nodes.some((node) => node.type === 'trigger.event')}><span className="palette-symbol trigger-symbol">↳</span><span><strong>Trigger de evento</strong><small>Entrada del workflow</small></span><Icon name="plus" size={15} /></button>
         <button onClick={() => addNode('condition.if')}><span className="palette-symbol condition-symbol">◇</span><span><strong>Condición IF</strong><small>Rutas verdadero / falso</small></span><Icon name="plus" size={15} /></button>
         <button onClick={() => addNode('flow.wait')}><span className="palette-symbol condition-symbol">◷</span><span><strong>Esperar</strong><small>Pausa y reanuda el workflow</small></span><Icon name="plus" size={15} /></button>
+        <button onClick={() => addNode('opportunity.update_stage')}><span className="palette-symbol condition-symbol">↗</span><span><strong>Cambiar etapa</strong><small>Actualizar oportunidad del evento</small></span><Icon name="plus" size={15} /></button>
         <button onClick={() => addNode('flow.end')}><span className="palette-symbol end-symbol">■</span><span><strong>Fin</strong><small>Cierra una ruta</small></span><Icon name="plus" size={15} /></button>
-        <div className="automation-palette-note"><Icon name="clock" size={15} /><span>Las acciones ejecutables se habilitarán cuando terminemos el motor y sus nodos CRM.</span></div>
+        <div className="automation-palette-note"><Icon name="clock" size={15} /><span>Cambiar etapa ya se ejecuta dentro del dealer del evento. La publicación sigue bloqueada mientras cerramos la validación del motor.</span></div>
       </aside>
       <div className="automation-workspace">
         <div className="automation-canvas-toolbar"><div><span className="automation-status-dot" /> Borrador sin publicar <span className="automation-separator">·</span> Nueva York</div><div className="automation-canvas-tools"><button aria-label="Alejar" onClick={() => setZoom((value) => Math.max(.55, Math.round((value - .1) * 10) / 10))}>−</button><span>{Math.round(zoom * 100)}%</span><button aria-label="Acercar" onClick={() => setZoom((value) => Math.min(1.35, Math.round((value + .1) * 10) / 10))}>+</button><button onClick={() => { setZoom(.9); if (canvasRef.current) canvasRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' }) }}>Ajustar</button></div></div>
@@ -188,21 +228,25 @@ export default function AutomationWorkflowsView({ search }: Props) {
             {!definition.nodes.length && <div className="automation-canvas-empty"><span className="automation-canvas-glyph"><Icon name="workflow" size={22} /></span><h2>Empieza con un trigger</h2><p>Elige qué evento de CRM inicia este workflow. Después puedes añadir condiciones y conectar sus salidas.</p><button className="primary" onClick={() => addNode('trigger.event')}><Icon name="plus" size={15} /> Añadir trigger</button></div>}
             {definition.nodes.map((node) => <article key={node.id} className={`automation-node automation-node--${node.type.replace('.', '-')} ${selectedNodeId === node.id ? 'is-selected' : ''}`} style={{ left: node.position.x, top: node.position.y }} onClick={() => setSelectedNodeId(node.id)}>
               {node.type !== 'trigger.event' && <button className={`automation-port automation-port--input ${definition.edges.some((edge) => edge.target === node.id) ? 'is-connected' : ''}`} aria-label={`Entrada de ${nodeTitle(node)}`} onClick={(event) => { event.stopPropagation(); clickInput(node.id) }} />}
-              <header className="automation-node-header"><span className={`automation-node-icon node-icon--${node.type.replace('.', '-')}`}>{node.type === 'trigger.event' ? '↳' : node.type === 'condition.if' ? '◇' : node.type === 'flow.wait' ? '◷' : '■'}</span><span><small>{node.type === 'trigger.event' ? 'TRIGGER' : node.type === 'condition.if' ? 'CONDICIÓN' : 'CONTROL'}</small><strong>{nodeTitle(node)}</strong></span><button className="automation-node-menu" aria-label={`Seleccionar ${nodeTitle(node)}`} onClick={(event) => { event.stopPropagation(); setSelectedNodeId(node.id) }}>•••</button></header>
-              <div className="automation-node-detail">{node.type === 'trigger.event' ? <><span>Cuando ocurra</span><b>{node.config.eventType}</b></> : node.type === 'condition.if' ? <><span>{fieldTitle(node.config.field)} {OPERATOR_OPTIONS.find((item) => item.value === node.config.operator)?.label}</span><b>{node.config.value || 'sin valor'}</b></> : node.type === 'flow.wait' ? <><span>Pausar durante</span><b>{node.config.durationSeconds} segundos</b></> : <><span>Resultado de la ruta</span><b>{node.config.outcome === 'complete' ? 'Completar' : 'Detener'}</b></>}</div>
-              {node.type === 'trigger.event' || node.type === 'flow.wait' ? <button className={`automation-port automation-port--output ${connectFrom?.nodeId === node.id ? 'is-armed' : ''}`} aria-label={`Salida siguiente de ${nodeTitle(node)}`} onClick={(event) => { event.stopPropagation(); clickOutput(node.id, 'next') }} /> : node.type === 'condition.if' ? <div className="automation-branch-ports"><button className={`automation-port automation-port--branch ${connectFrom?.nodeId === node.id && connectFrom.port === 'true' ? 'is-armed' : ''}`} aria-label="Salida verdadero" onClick={(event) => { event.stopPropagation(); clickOutput(node.id, 'true') }}><span>V</span></button><button className={`automation-port automation-port--branch automation-port--false ${connectFrom?.nodeId === node.id && connectFrom.port === 'false' ? 'is-armed' : ''}`} aria-label="Salida falso" onClick={(event) => { event.stopPropagation(); clickOutput(node.id, 'false') }}><span>F</span></button></div> : null}
+              <header className="automation-node-header"><span className={`automation-node-icon node-icon--${node.type.replace('.', '-')}`}>{node.type === 'trigger.event' ? '↳' : node.type === 'condition.if' ? '◇' : node.type === 'flow.wait' ? '◷' : node.type === 'opportunity.update_stage' ? '↗' : '■'}</span><span><small>{node.type === 'trigger.event' ? 'TRIGGER' : node.type === 'condition.if' ? 'CONDICIÓN' : node.type === 'opportunity.update_stage' ? 'ACCIÓN CRM' : 'CONTROL'}</small><strong>{nodeTitle(node)}</strong></span><button className="automation-node-menu" aria-label={`Seleccionar ${nodeTitle(node)}`} onClick={(event) => { event.stopPropagation(); setSelectedNodeId(node.id) }}>•••</button></header>
+              <div className="automation-node-detail">{node.type === 'trigger.event' ? <><span>Cuando ocurra</span><b>{node.config.eventType}</b></> : node.type === 'condition.if' ? <><span>{fieldTitle(node.config.field)} {OPERATOR_OPTIONS.find((item) => item.value === node.config.operator)?.label}</span><b>{node.config.value || 'sin valor'}</b></> : node.type === 'flow.wait' ? <><span>Pausar durante</span><b>{node.config.durationSeconds} segundos</b></> : node.type === 'opportunity.update_stage' ? <><span>Etapa objetivo</span><b>{OPPORTUNITY_STAGE_OPTIONS.find((stage) => stage.value === node.config.stage)?.label}</b></> : <><span>Resultado de la ruta</span><b>{node.config.outcome === 'complete' ? 'Completar' : 'Detener'}</b></>}</div>
+              {node.type === 'trigger.event' || node.type === 'flow.wait' || node.type === 'opportunity.update_stage' ? <button className={`automation-port automation-port--output ${connectFrom?.nodeId === node.id ? 'is-armed' : ''}`} aria-label={`Salida siguiente de ${nodeTitle(node)}`} onClick={(event) => { event.stopPropagation(); clickOutput(node.id, 'next') }} /> : node.type === 'condition.if' ? <div className="automation-branch-ports"><button className={`automation-port automation-port--branch ${connectFrom?.nodeId === node.id && connectFrom.port === 'true' ? 'is-armed' : ''}`} aria-label="Salida verdadero" onClick={(event) => { event.stopPropagation(); clickOutput(node.id, 'true') }}><span>V</span></button><button className={`automation-port automation-port--branch automation-port--false ${connectFrom?.nodeId === node.id && connectFrom.port === 'false' ? 'is-armed' : ''}`} aria-label="Salida falso" onClick={(event) => { event.stopPropagation(); clickOutput(node.id, 'false') }}><span>F</span></button></div> : null}
               {node.type !== 'flow.end' && <button className="automation-node-drag" aria-label={`Mover ${nodeTitle(node)}`} onPointerDown={(event) => startMove(event, node)} onPointerMove={moveNode} onPointerUp={endMove}><Icon name="dots" size={14} /></button>}
             </article>)}
           </div>
-          <div className="automation-minimap" aria-label="Minimapa del workflow"><span />{definition.nodes.map((node) => <i key={node.id} style={{ left: `${Math.min(94, node.position.x / 1800 * 100)}%`, top: `${Math.min(86, node.position.y / 1150 * 100)}%` }} />)}</div>
+          <div className="automation-minimap" aria-label="Minimapa del workflow">
+            <span ref={minimapViewportRef} style={{ left: MINIMAP_INSET, top: MINIMAP_INSET, width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }} />
+            {definition.nodes.map((node) => <i key={node.id} style={{ left: `${MINIMAP_INSET + node.position.x / CANVAS_WIDTH * MINIMAP_WIDTH}px`, top: `${MINIMAP_INSET + node.position.y / CANVAS_HEIGHT * MINIMAP_HEIGHT}px` }} />)}
+          </div>
         </div>
         <footer className="automation-canvas-footer"><span>{connectMessage || (connectFrom ? 'Selecciona un nodo de destino.' : 'Selecciona un nodo para configurar. Arrástralo desde el control de movimiento.')}</span><span>{definition.nodes.length} nodos · {definition.edges.length} conexiones</span></footer>
       </div>
       <aside className="automation-inspector" aria-label="Configuración del nodo"><p className="eyebrow">CONFIGURACIÓN</p>{selectedNode ? <>
-        <div className="automation-inspector-title"><span className={`automation-node-icon node-icon--${selectedNode.type.replace('.', '-')}`}>{selectedNode.type === 'trigger.event' ? '↳' : selectedNode.type === 'condition.if' ? '◇' : selectedNode.type === 'flow.wait' ? '◷' : '■'}</span><div><h2>{nodeTitle(selectedNode)}</h2><small>{selectedNode.type}</small></div></div>
+        <div className="automation-inspector-title"><span className={`automation-node-icon node-icon--${selectedNode.type.replace('.', '-')}`}>{selectedNode.type === 'trigger.event' ? '↳' : selectedNode.type === 'condition.if' ? '◇' : selectedNode.type === 'flow.wait' ? '◷' : selectedNode.type === 'opportunity.update_stage' ? '↗' : '■'}</span><div><h2>{nodeTitle(selectedNode)}</h2><small>{selectedNode.type}</small></div></div>
         {selectedNode.type === 'trigger.event' && <label className="automation-field">Evento que inicia el workflow<select value={selectedNode.config.eventType} onChange={(event) => changeNode(selectedNode.id, (node) => node.type === 'trigger.event' ? { ...node, config: { eventType: event.target.value as AutomationEvent } } : node)}>{AUTOMATION_EVENTS.map((item) => <option key={item} value={item}>{item}</option>)}</select><small>Los datos entran desde el evento versionado de CRM.</small></label>}
         {selectedNode.type === 'condition.if' && <><label className="automation-field">Campo<select value={selectedNode.config.field} onChange={(event) => changeNode(selectedNode.id, (node) => node.type === 'condition.if' ? { ...node, config: { ...node.config, field: event.target.value as ConditionField } } : node)}>{FIELD_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select></label><label className="automation-field">Operador<select value={selectedNode.config.operator} onChange={(event) => changeNode(selectedNode.id, (node) => node.type === 'condition.if' ? { ...node, config: { ...node.config, operator: event.target.value as ConditionOperator, ...(['is_empty', 'is_not_empty'].includes(event.target.value) ? { value: undefined } : {}) } } : node)}>{OPERATOR_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select></label>{!['is_empty', 'is_not_empty'].includes(selectedNode.config.operator) && <label className="automation-field">Valor<input value={selectedNode.config.value ?? ''} maxLength={200} onChange={(event) => changeNode(selectedNode.id, (node) => node.type === 'condition.if' ? { ...node, config: { ...node.config, value: event.target.value } } : node)} /></label>}</>}
         {selectedNode.type === 'flow.wait' && <label className="automation-field">Duración (segundos)<input type="number" min={1} max={31536000} step={1} value={selectedNode.config.durationSeconds} onChange={(event) => changeNode(selectedNode.id, (node) => node.type === 'flow.wait' ? { ...node, config: { durationSeconds: Number(event.target.value) } } : node)} /><small>Entre 1 segundo y 365 días. El run se guarda y se reanuda automáticamente.</small></label>}
+        {selectedNode.type === 'opportunity.update_stage' && <label className="automation-field">Nueva etapa<select aria-label="Nueva etapa de la oportunidad" value={selectedNode.config.stage} onChange={(event) => changeNode(selectedNode.id, (node) => node.type === 'opportunity.update_stage' ? { ...node, config: { stage: event.target.value as typeof node.config.stage } } : node)}>{OPPORTUNITY_STAGE_OPTIONS.map((stage) => <option value={stage.value} key={stage.value}>{stage.label}</option>)}</select><small>Actualiza la oportunidad que originó el evento, dentro del dealer del workflow.</small></label>}
         {selectedNode.type === 'flow.end' && <label className="automation-field">Al terminar<select value={selectedNode.config.outcome} onChange={(event) => changeNode(selectedNode.id, (node) => node.type === 'flow.end' ? { ...node, config: { outcome: event.target.value as 'complete' | 'stop' } } : node)}><option value="complete">Completar workflow</option><option value="stop">Detener esta ruta</option></select></label>}
         <button className="automation-delete-node" onClick={removeSelectedNode}>Eliminar nodo</button>
       </> : <div className="automation-inspector-empty"><span>⌖</span><strong>Selecciona un nodo</strong><p>Sus opciones de configuración aparecerán aquí.</p></div>}
@@ -225,6 +269,7 @@ function nodeTitle(node: WorkflowNode): string {
   if (node.type === 'trigger.event') return 'Evento de CRM'
   if (node.type === 'condition.if') return 'Condición IF'
   if (node.type === 'flow.wait') return 'Esperar'
+  if (node.type === 'opportunity.update_stage') return 'Cambiar etapa de oportunidad'
   return 'Fin de ruta'
 }
 

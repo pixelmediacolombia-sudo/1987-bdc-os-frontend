@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AutomationWorkflowsView from './AutomationWorkflowsView'
 import type { WorkflowDefinition, WorkflowRecord } from '../../../domain/automation/workflow'
@@ -7,6 +7,8 @@ import type { WorkflowDefinition, WorkflowRecord } from '../../../domain/automat
 const mocks = vi.hoisted(() => ({
   listDealers: vi.fn(), list: vi.fn(), get: vi.fn(), create: vi.fn(), saveDraft: vi.fn(),
 }))
+
+afterEach(cleanup)
 
 vi.mock('../../../core/container', () => ({ appServices: {
   contacts: { listDealers: mocks.listDealers },
@@ -39,10 +41,10 @@ describe('automation workflow canvas', () => {
     await user.click(await screen.findByRole('button', { name: 'Añadir trigger' }))
     await user.click(screen.getByRole('button', { name: /Condición IF/ }))
     await user.click(screen.getByRole('button', { name: /EsperarPausa y reanuda/ }))
-    await user.click(screen.getByRole('button', { name: /FinCierra una ruta/ }))
+    await user.click(screen.getAllByRole('button', { name: /FinCierra una ruta/ })[0]!)
     await user.click(screen.getByRole('button', { name: /FinCierra una ruta/ }))
 
-    await user.click(screen.getByRole('button', { name: 'Salida siguiente de Evento de CRM' }))
+    await user.click(screen.getAllByRole('button', { name: 'Salida siguiente de Evento de CRM' })[0]!)
     await user.click(screen.getByRole('button', { name: 'Entrada de Condición IF' }))
     await user.click(screen.getByRole('button', { name: 'Salida verdadero' }))
     await user.click(screen.getByRole('button', { name: 'Entrada de Esperar' }))
@@ -58,5 +60,56 @@ describe('automation workflow canvas', () => {
     expect(savedDefinition.nodes).toHaveLength(5)
     expect(savedDefinition.edges).toHaveLength(4)
     expect(screen.getByText('Borrador guardado')).toBeTruthy()
+  })
+
+  it('configures and saves the real opportunity stage action node', async () => {
+    const user = userEvent.setup()
+    render(<AutomationWorkflowsView search="" />)
+    await user.click(await screen.findByRole('button', { name: 'Crear automatización' }))
+    await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Cambiar etapa local')
+    await user.click(screen.getByRole('button', { name: 'Crear borrador' }))
+
+    await user.click(await screen.findByRole('button', { name: 'Añadir trigger' }))
+    await user.click(screen.getAllByRole('button', { name: /Cambiar etapaActualizar oportunidad/ })[0]!)
+    await user.click(screen.getAllByRole('button', { name: /FinCierra una ruta/ })[0]!)
+    await user.click(screen.getAllByRole('button', { name: 'Salida siguiente de Evento de CRM' })[0]!)
+    await user.click(screen.getByRole('button', { name: 'Entrada de Cambiar etapa de oportunidad' }))
+    await user.click(screen.getByRole('button', { name: 'Seleccionar Cambiar etapa de oportunidad' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Nueva etapa de la oportunidad' }), 'won')
+    await user.click(screen.getByRole('button', { name: 'Salida siguiente de Cambiar etapa de oportunidad' }))
+    await user.click(screen.getAllByRole('button', { name: 'Entrada de Fin de ruta' })[0]!)
+    await user.click(screen.getByRole('button', { name: 'Guardar borrador' }))
+
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(1))
+    const [, , , savedDefinition] = mocks.saveDraft.mock.calls[0] as [string, WorkflowRecord, string, WorkflowDefinition]
+    expect(savedDefinition.nodes.find((node) => node.type === 'opportunity.update_stage')?.config).toEqual({ stage: 'won' })
+    expect(savedDefinition.edges).toHaveLength(2)
+    expect(screen.getByText('Borrador guardado')).toBeTruthy()
+    expect(document.querySelector('.automation-editor--fullscreen')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Volver a automatizaciones' }))
+    expect(await screen.findByRole('heading', { name: 'Automatizaciones' })).toBeTruthy()
+  })
+
+  it('moves the minimap viewport when the canvas scrolls', async () => {
+    const user = userEvent.setup()
+    render(<AutomationWorkflowsView search="" />)
+    await user.click(await screen.findByRole('button', { name: 'Crear automatización' }))
+    await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Minimapa dinámico')
+    await user.click(screen.getByRole('button', { name: 'Crear borrador' }))
+    await user.click(await screen.findByRole('button', { name: 'Añadir trigger' }))
+
+    const canvasShell = document.querySelector('.automation-canvas-shell') as HTMLDivElement
+    const viewportIndicator = screen.getByLabelText('Minimapa del workflow').querySelector('span')!
+    expect(viewportIndicator.style.top).toBe('12px')
+    Object.defineProperties(canvasShell, {
+      clientWidth: { configurable: true, value: 600 }, clientHeight: { configurable: true, value: 400 },
+      scrollWidth: { configurable: true, value: 1800 }, scrollHeight: { configurable: true, value: 1150 },
+    })
+    canvasShell.scrollTop = 400
+    canvasShell.scrollLeft = 350
+    fireEvent.scroll(canvasShell)
+
+    expect(viewportIndicator.style.top).not.toBe('12px')
+    expect(viewportIndicator.style.left).not.toBe('12px')
   })
 })
