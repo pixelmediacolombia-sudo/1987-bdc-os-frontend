@@ -84,6 +84,7 @@ export const appServices = {
     get: (dealerId: string, id: string) => automationWorkflowRepository.get(dealerId, id),
     create: (dealerId: string, name: string) => automationWorkflowRepository.create(dealerId, name),
     saveDraft: (dealerId: string, workflow: import('../domain/automation/workflow').WorkflowRecord, name: string, definition: import('../domain/automation/workflow').WorkflowDefinition) => automationWorkflowRepository.saveDraft(dealerId, workflow, name, definition),
+    publish: (dealerId: string, workflow: import('../domain/automation/workflow').WorkflowRecord) => automationWorkflowRepository.publish(dealerId, workflow),
     listRuns: (dealerId: string, workflowId: string) => automationWorkflowRepository.listRuns(dealerId, workflowId),
     cancelRun: (dealerId: string, runId: string) => automationWorkflowRepository.cancelRun(dealerId, runId),
     retryRun: (dealerId: string, runId: string) => automationWorkflowRepository.retryRun(dealerId, runId),

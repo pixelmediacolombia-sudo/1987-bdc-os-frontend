@@ -27,6 +27,10 @@ export class HttpAutomationWorkflowRepository {
     })
   }
 
+  async publish(dealerId: string, workflow: WorkflowRecord): Promise<{ workflow: WorkflowRecord; validationIssues: WorkflowIssue[] }> {
+    return this.http.post(`/auth/automation/workflows/${encodeURIComponent(workflow.id)}/publish`, { dealerId, expectedRevision: workflow.draft.revision })
+  }
+
   async listRuns(dealerId: string, workflowId: string): Promise<AutomationRun[]> {
     const result = await this.http.get<{ runs: AutomationRun[] }>(`/auth/automation/workflows/${encodeURIComponent(workflowId)}/runs?dealerId=${encodeURIComponent(dealerId)}&limit=50`)
     return result.runs

@@ -5,7 +5,7 @@ import AutomationWorkflowsView from './AutomationWorkflowsView'
 import type { WorkflowDefinition, WorkflowRecord } from '../../../domain/automation/workflow'
 
 const mocks = vi.hoisted(() => ({
-  listDealers: vi.fn(), list: vi.fn(), get: vi.fn(), create: vi.fn(), saveDraft: vi.fn(),
+  listDealers: vi.fn(), list: vi.fn(), get: vi.fn(), create: vi.fn(), saveDraft: vi.fn(), publish: vi.fn(),
   listRuns: vi.fn(), cancelRun: vi.fn(), retryRun: vi.fn(), replayRun: vi.fn(),
 }))
 
@@ -13,7 +13,7 @@ afterEach(cleanup)
 
 vi.mock('../../../core/container', () => ({ appServices: {
   contacts: { listDealers: mocks.listDealers },
-  automationWorkflows: { list: mocks.list, get: mocks.get, create: mocks.create, saveDraft: mocks.saveDraft, listRuns: mocks.listRuns, cancelRun: mocks.cancelRun, retryRun: mocks.retryRun, replayRun: mocks.replayRun },
+  automationWorkflows: { list: mocks.list, get: mocks.get, create: mocks.create, saveDraft: mocks.saveDraft, publish: mocks.publish, listRuns: mocks.listRuns, cancelRun: mocks.cancelRun, retryRun: mocks.retryRun, replayRun: mocks.replayRun },
 } }))
 
 function blankRecord(name: string): WorkflowRecord {
@@ -34,6 +34,9 @@ describe('automation workflow canvas', () => {
     mocks.create.mockImplementation(async (_dealerId: string, name: string) => ({ workflow: blankRecord(name), validationIssues: [] }))
     mocks.saveDraft.mockImplementation(async (_dealerId: string, workflow: WorkflowRecord, name: string, definition: WorkflowDefinition) => ({
       workflow: { ...workflow, name, draft: { revision: workflow.draft.revision + 1, definition: { ...definition, name }, updatedAt: '2026-11-26T12:05:00.000Z' } }, validationIssues: [],
+    }))
+    mocks.publish.mockImplementation(async (_dealerId: string, workflow: WorkflowRecord) => ({
+      workflow: { ...workflow, published: { revision: workflow.draft.revision, definition: workflow.draft.definition, publishedAt: '2026-11-26T12:10:00.000Z' } }, validationIssues: [],
     }))
   })
 
@@ -96,6 +99,32 @@ describe('automation workflow canvas', () => {
     expect(await screen.findByRole('heading', { name: 'Automatizaciones' })).toBeTruthy()
   })
 
+  it('publishes a saved workflow only after its implemented stage action is valid', async () => {
+    const user = userEvent.setup()
+    render(<AutomationWorkflowsView search="" />)
+    await user.click(await screen.findByRole('button', { name: 'Crear automatización' }))
+    await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Oportunidad nueva a en proceso')
+    await user.click(screen.getByRole('button', { name: 'Crear borrador' }))
+    await user.click(await screen.findByRole('button', { name: 'Añadir trigger' }))
+    await user.click(screen.getByRole('button', { name: 'Seleccionar Evento de CRM' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: /^Evento que inicia el workflow/ }), 'opportunity.created')
+    await user.click(screen.getAllByRole('button', { name: /Cambiar etapaActualizar oportunidad/ })[0]!)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Nueva etapa de la oportunidad' }), 'working')
+    await user.click(screen.getAllByRole('button', { name: /FinCierra una ruta/ })[0]!)
+    await user.click(screen.getByRole('button', { name: 'Salida siguiente de Evento de CRM' }))
+    await user.click(screen.getByRole('button', { name: 'Entrada de Cambiar etapa de oportunidad' }))
+    await user.click(screen.getByRole('button', { name: 'Salida siguiente de Cambiar etapa de oportunidad' }))
+    await user.click(screen.getByRole('button', { name: 'Entrada de Fin de ruta' }))
+    expect((screen.getByRole('button', { name: 'Publicar' }) as HTMLButtonElement).disabled).toBe(true)
+    await user.click(screen.getByRole('button', { name: 'Guardar borrador' }))
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(1))
+    expect((screen.getByRole('button', { name: 'Publicar' }) as HTMLButtonElement).disabled).toBe(false)
+    await user.click(screen.getByRole('button', { name: 'Publicar' }))
+    await waitFor(() => expect(mocks.publish).toHaveBeenCalledTimes(1))
+    expect(screen.getByText('Workflow publicado · v2')).toBeTruthy()
+    expect(document.querySelector('.automation-canvas-toolbar')?.textContent).toContain('Publicado · v2')
+  })
+
   it('moves the minimap viewport when the canvas scrolls', async () => {
     const user = userEvent.setup()
     render(<AutomationWorkflowsView search="" />)
@@ -105,9 +134,9 @@ describe('automation workflow canvas', () => {
     await user.click(await screen.findByRole('button', { name: 'Añadir trigger' }))
 
     const canvasShell = document.querySelector('.automation-canvas-shell') as HTMLDivElement
-    const minimap = screen.getByLabelText('Minimapa del workflow') as HTMLDivElement
+    const minimap = screen.getByRole('img', { name: /^Minimapa del workflow/ }) as HTMLDivElement
     const viewportIndicator = minimap.querySelector('span')!
-    expect(viewportIndicator.style.top).toBe('12px')
+    expect(viewportIndicator.style.top).toBe('10px')
     Object.defineProperties(canvasShell, {
       clientWidth: { configurable: true, value: 600 }, clientHeight: { configurable: true, value: 400 },
       scrollWidth: { configurable: true, value: 1800 }, scrollHeight: { configurable: true, value: 1150 },

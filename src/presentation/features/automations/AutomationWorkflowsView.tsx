@@ -28,9 +28,9 @@ type DragState = { id: string; pointerId: number; x: number; y: number; originX:
 type PanState = { pointerId: number; x: number; y: number; scrollLeft: number; scrollTop: number }
 const CANVAS_WIDTH = 1800
 const CANVAS_HEIGHT = 1150
-const MINIMAP_INSET = 12
-const MINIMAP_WIDTH = 124
-const MINIMAP_HEIGHT = 70
+const MINIMAP_INSET = 10
+const MINIMAP_WIDTH = 160
+const MINIMAP_HEIGHT = 94
 const EDITOR_WORKFLOW_KEY = 'bdc-os:automation-editor:'
 
 export default function AutomationWorkflowsView({ search }: Props) {
@@ -42,6 +42,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
   const [nameDraft, setNameDraft] = useState('')
   const [showCreate, setShowCreate] = useState(false)
@@ -115,6 +116,10 @@ export default function AutomationWorkflowsView({ search }: Props) {
   const localIssues = useMemo(() => definition ? validateWorkflow(definition) : [], [definition])
   const selectedNode = definition?.nodes.find((node) => node.id === selectedNodeId) ?? null
   const visibleItems = items.filter((item) => item.name.toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')))
+  const hasUnsavedDraft = Boolean(workflow && definition && JSON.stringify(definition) !== JSON.stringify(workflow.draft.definition))
+  const hasImplementedAction = Boolean(definition?.nodes.some((node) => node.type === 'opportunity.update_stage'))
+  const isPublished = Boolean(workflow && workflow.published?.revision === workflow.draft.revision)
+  const canPublish = Boolean(workflow && definition && !saving && !publishing && !hasUnsavedDraft && hasImplementedAction && localIssues.length === 0 && workflow.published?.revision !== workflow.draft.revision)
 
   async function openWorkflow(id: string) {
     setError(''); setSavedNotice(''); setConnectFrom(null); setConnectMessage('')
@@ -150,6 +155,18 @@ export default function AutomationWorkflowsView({ search }: Props) {
       setSavedNotice('Borrador guardado')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'No pudimos guardar el borrador.') }
     finally { setSaving(false) }
+  }
+
+  async function publishWorkflow() {
+    if (!workflow || !dealerId || !canPublish) return
+    setPublishing(true); setError(''); setSavedNotice('')
+    try {
+      const result = await appServices.automationWorkflows.publish(dealerId, workflow)
+      setWorkflow(result.workflow)
+      setItems((current) => current.map((item) => item.id === workflow.id ? { ...item, publishedRevision: result.workflow.published?.revision ?? null, updatedAt: result.workflow.draft.updatedAt } : item))
+      setSavedNotice(`Workflow publicado · v${result.workflow.published?.revision ?? workflow.draft.revision}`)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'No pudimos publicar el workflow.') }
+    finally { setPublishing(false) }
   }
 
   function changeNode(nodeId: string, update: (node: WorkflowNode) => WorkflowNode) {
@@ -237,7 +254,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
       <div className="automation-title-group"><label className="automation-name-label" htmlFor="workflow-name">Nombre del borrador</label><input id="workflow-name" value={definition.name} maxLength={120} onChange={(event) => setDefinition((current) => current ? { ...current, name: event.target.value } : current)} /></div>
       <span className="automation-draft-badge">Borrador · v{workflow.draft.revision}</span>
       <button className="automation-view-toggle" onClick={() => setShowRuns((current) => !current)} aria-pressed={showRuns}>{showRuns ? 'Volver al canvas' : 'Ejecuciones'}</button>
-      <div className="automation-save-actions"><span role="status">{saving ? 'Guardando…' : savedNotice}</span><button className="primary" disabled={saving || !definition.name.trim()} onClick={() => void saveDraft()}>Guardar borrador</button><button className="secondary" disabled title="Disponible cuando el motor y los nodos CRM estén listos.">Publicar</button></div>
+      <div className="automation-save-actions"><span role="status">{saving || publishing ? 'Guardando…' : savedNotice}</span><button className="primary" disabled={saving || publishing || !definition.name.trim()} onClick={() => void saveDraft()}>Guardar borrador</button><button className="secondary" disabled={!canPublish} title={hasUnsavedDraft ? 'Guarda el borrador antes de publicarlo.' : !hasImplementedAction ? 'Añade la acción soportada “Cambiar etapa” para publicar.' : localIssues.length ? 'Corrige la validación del workflow antes de publicar.' : workflow.published?.revision === workflow.draft.revision ? 'Esta revisión ya está publicada.' : 'Publica la última revisión guardada; solo ejecutará acciones de etapa de oportunidad.'} onClick={() => void publishWorkflow()}>{workflow.published?.revision === workflow.draft.revision ? `Publicado · v${workflow.draft.revision}` : 'Publicar'}</button></div>
     </header>
     {error && <div className="automation-alert" role="alert">{error}</div>}
     {showRuns ? <AutomationRunHistory dealerId={dealerId} workflowId={workflow.id} /> : <>
@@ -248,10 +265,10 @@ export default function AutomationWorkflowsView({ search }: Props) {
         <button onClick={() => addNode('flow.wait')}><span className="palette-symbol condition-symbol">◷</span><span><strong>Esperar</strong><small>Pausa y reanuda el workflow</small></span><Icon name="plus" size={15} /></button>
         <button onClick={() => addNode('opportunity.update_stage')}><span className="palette-symbol condition-symbol">↗</span><span><strong>Cambiar etapa</strong><small>Actualizar oportunidad del evento</small></span><Icon name="plus" size={15} /></button>
         <button onClick={() => addNode('flow.end')}><span className="palette-symbol end-symbol">■</span><span><strong>Fin</strong><small>Cierra una ruta</small></span><Icon name="plus" size={15} /></button>
-        <div className="automation-palette-note"><Icon name="clock" size={15} /><span>Cambiar etapa ya se ejecuta dentro del dealer del evento. La publicación sigue bloqueada mientras cerramos la validación del motor.</span></div>
+        <div className="automation-palette-note"><Icon name="clock" size={15} /><span>Cambiar etapa solo actualiza la oportunidad que originó el evento y dentro del dealer del workflow. Las demás acciones se habilitarán cuando estén implementadas.</span></div>
       </aside>
       <div className="automation-workspace">
-        <div className="automation-canvas-toolbar"><div><span className="automation-status-dot" /> Borrador sin publicar <span className="automation-separator">·</span> Nueva York</div><div className="automation-canvas-tools"><button aria-label="Alejar" onClick={() => setZoom((value) => Math.max(.55, Math.round((value - .1) * 10) / 10))}>−</button><span>{Math.round(zoom * 100)}%</span><button aria-label="Acercar" onClick={() => setZoom((value) => Math.min(1.35, Math.round((value + .1) * 10) / 10))}>+</button><button onClick={() => { setZoom(.9); if (canvasRef.current) canvasRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' }) }}>Ajustar</button></div></div>
+        <div className="automation-canvas-toolbar"><div><span className={`automation-status-dot${isPublished ? ' is-published' : ''}`} /> {isPublished ? `Publicado · v${workflow.draft.revision}` : 'Borrador sin publicar'} <span className="automation-separator">·</span> Nueva York</div><div className="automation-canvas-tools"><button aria-label="Alejar" onClick={() => setZoom((value) => Math.max(.55, Math.round((value - .1) * 10) / 10))}>−</button><span>{Math.round(zoom * 100)}%</span><button aria-label="Acercar" onClick={() => setZoom((value) => Math.min(1.35, Math.round((value + .1) * 10) / 10))}>+</button><button onClick={() => { setZoom(.9); if (canvasRef.current) canvasRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' }) }}>Ajustar</button></div></div>
         <div className={`automation-canvas-shell${isPanning ? ' is-panning' : ''}`} ref={canvasRef} onPointerDown={startPan} onPointerMove={moveNode} onPointerUp={endMove} onPointerCancel={endMove}>
           <div className="automation-canvas" style={{ transform: `scale(${zoom})` }} onClick={(event) => { if (event.target === event.currentTarget) { setSelectedNodeId(null); setConnectMessage('') } }}>
             <svg className="automation-edges" width="1800" height="1150" aria-hidden="true">{definition.edges.map((edge) => {
@@ -271,9 +288,22 @@ export default function AutomationWorkflowsView({ search }: Props) {
             </article>)}
           </div>
         </div>
-        <div className="automation-minimap" aria-label="Minimapa del workflow">
+        <div className="automation-minimap" role="img" aria-label={`Minimapa del workflow: ${definition.nodes.length} nodos y ${definition.edges.length} conexiones`}>
+          <svg className="automation-minimap-graph" viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
+            {definition.edges.map((edge) => {
+              const source = definition.nodes.find((node) => node.id === edge.source)
+              const target = definition.nodes.find((node) => node.id === edge.target)
+              if (!source || !target) return null
+              const x1 = source.position.x + NODE_WIDTH
+              const y1 = source.position.y + (source.type === 'condition.if' ? edge.sourcePort === 'true' ? 103 : 122 : NODE_HEIGHT - 20)
+              const x2 = target.position.x
+              const y2 = target.position.y + 26
+              const bend = Math.max(50, (x2 - x1) * .45)
+              return <path key={edge.id} d={`M ${x1} ${y1} C ${x1 + bend} ${y1}, ${x2 - bend} ${y2}, ${x2} ${y2}`} />
+            })}
+            {definition.nodes.map((node) => <rect key={node.id} className={`automation-minimap-node automation-minimap-node--${node.type.replace('.', '-')}`} x={node.position.x} y={node.position.y} width={NODE_WIDTH} height={NODE_HEIGHT} rx="12" />)}
+          </svg>
           <span ref={minimapViewportRef} style={{ left: MINIMAP_INSET, top: MINIMAP_INSET, width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }} />
-          {definition.nodes.map((node) => <i key={node.id} style={{ left: `${MINIMAP_INSET + node.position.x / CANVAS_WIDTH * MINIMAP_WIDTH}px`, top: `${MINIMAP_INSET + node.position.y / CANVAS_HEIGHT * MINIMAP_HEIGHT}px` }} />)}
         </div>
         <footer className="automation-canvas-footer"><span>{connectMessage || (connectFrom ? 'Selecciona un nodo de destino.' : 'Selecciona un nodo para configurar. Arrástralo desde el control de movimiento.')}</span><span>{definition.nodes.length} nodos · {definition.edges.length} conexiones</span></footer>
       </div>
@@ -290,7 +320,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
         {connectMessage && <p className="automation-connect-hint" role="status">{connectMessage}</p>}
       </aside>
     </div>
-    <p className="automation-editor-footnote">Los borradores se guardan por dealer. La publicación aparecerá cuando el motor de ejecución y las acciones estén implementados.</p>
+    <p className="automation-editor-footnote">Los borradores se guardan por dealer. Puedes publicar revisiones válidas que usen acciones implementadas.</p>
     </>}
   </section>
 
