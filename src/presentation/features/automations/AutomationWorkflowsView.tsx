@@ -3,6 +3,7 @@ import { appServices } from '../../../core/container'
 import type { ContactDealer } from '../../../domain/contact/contact'
 import { AUTOMATION_EVENTS, validateWorkflow, type AutomationEvent, type ConditionField, type ConditionOperator, type WorkflowDefinition, type WorkflowEdge, type WorkflowNode, type WorkflowNodeType, type WorkflowRecord } from '../../../domain/automation/workflow'
 import Icon from '../../components/Icon'
+import AutomationRunHistory from './AutomationRunHistory'
 import './automation-workflows.css'
 
 const FIELD_OPTIONS: Array<{ value: ConditionField; label: string }> = [
@@ -49,6 +50,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
   const [connectFrom, setConnectFrom] = useState<{ nodeId: string; port: 'next' | 'true' | 'false' } | null>(null)
   const [connectMessage, setConnectMessage] = useState('')
   const [savedNotice, setSavedNotice] = useState('')
+  const [showRuns, setShowRuns] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const minimapViewportRef = useRef<HTMLSpanElement>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -234,9 +236,11 @@ export default function AutomationWorkflowsView({ search }: Props) {
       <button className="automation-back" onClick={() => { setWorkflow(null); setDefinition(null); setConnectFrom(null); setError(''); try { window.sessionStorage.removeItem(`${EDITOR_WORKFLOW_KEY}${dealerId}`) } catch { /* Navigation still works without browser storage. */ } }} aria-label="Volver a automatizaciones"><Icon name="arrow-left" size={16} /><span>Volver</span></button>
       <div className="automation-title-group"><label className="automation-name-label" htmlFor="workflow-name">Nombre del borrador</label><input id="workflow-name" value={definition.name} maxLength={120} onChange={(event) => setDefinition((current) => current ? { ...current, name: event.target.value } : current)} /></div>
       <span className="automation-draft-badge">Borrador · v{workflow.draft.revision}</span>
+      <button className="automation-view-toggle" onClick={() => setShowRuns((current) => !current)} aria-pressed={showRuns}>{showRuns ? 'Volver al canvas' : 'Ejecuciones'}</button>
       <div className="automation-save-actions"><span role="status">{saving ? 'Guardando…' : savedNotice}</span><button className="primary" disabled={saving || !definition.name.trim()} onClick={() => void saveDraft()}>Guardar borrador</button><button className="secondary" disabled title="Disponible cuando el motor y los nodos CRM estén listos.">Publicar</button></div>
     </header>
     {error && <div className="automation-alert" role="alert">{error}</div>}
+    {showRuns ? <AutomationRunHistory dealerId={dealerId} workflowId={workflow.id} /> : <>
     <div className="automation-editor-body">
       <aside className="automation-palette" aria-label="Agregar nodos"><p className="eyebrow">NODOS DEL CANVAS</p><h2>Agregar nodo</h2>
         <button onClick={() => addNode('trigger.event')} disabled={definition.nodes.some((node) => node.type === 'trigger.event')}><span className="palette-symbol trigger-symbol">↳</span><span><strong>Trigger de evento</strong><small>Entrada del workflow</small></span><Icon name="plus" size={15} /></button>
@@ -287,6 +291,7 @@ export default function AutomationWorkflowsView({ search }: Props) {
       </aside>
     </div>
     <p className="automation-editor-footnote">Los borradores se guardan por dealer. La publicación aparecerá cuando el motor de ejecución y las acciones estén implementados.</p>
+    </>}
   </section>
 
   return <section className="automation-list-view">

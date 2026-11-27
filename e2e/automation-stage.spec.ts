@@ -101,3 +101,47 @@ test('dealer configures an opportunity stage action and saves the draft', async 
   await expect(page.getByRole('button', { name: 'Volver a automatizaciones' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Nombre del borrador' })).toHaveValue('Oportunidad calificada → Ganada')
 })
+
+test('dealer reviews a failed automation run and confirms a replay', async ({ page }) => {
+  const runId = '40000000-0000-4000-8000-000000000001'
+  let replayCount = 0
+  const runs = [{
+    id: runId, status: 'failed', generation: 1, eventType: 'opportunity.stage_changed', workflowRevision: 3,
+    currentNodeId: null, attempts: 4, availableAt: '2026-11-27T15:00:00.000Z', lastError: 'La actualización de la etapa falló.',
+    createdAt: '2026-11-27T14:00:00.000Z', startedAt: '2026-11-27T14:01:00.000Z', finishedAt: '2026-11-27T14:02:00.000Z',
+    steps: [{ nodeId: 'node-stage', nodeType: 'opportunity.update_stage', status: 'failed', attempts: 4, output: { stage: 'working' }, error: 'No se pudo actualizar la oportunidad.', startedAt: '2026-11-27T14:01:00.000Z', finishedAt: '2026-11-27T14:02:00.000Z' }],
+  }]
+  await page.setViewportSize({ width: 1600, height: 1000 })
+  await page.route('**/backend/auth/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ authenticated: true, user: { id: 'history-e2e', email: 'qa@dealer.local', displayName: 'QA Dealer', accountType: 'user' } }) }))
+  await page.route('**/backend/auth/contacts/dealers', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ dealers: [{ id: dealerId, name: 'Dealer E2E' }] }) }))
+  await page.route('**/backend/auth/automation/workflows**', async (route) => {
+    const request = route.request(); const url = new URL(request.url())
+    if (request.method() === 'GET' && url.pathname.endsWith('/workflows')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ workflows: [] }) })
+    if (request.method() === 'POST') return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ workflow: { id: workflowId, name: 'Workflow con ejecuciones', draft: { revision: 1, definition: { schemaVersion: 1, name: 'Workflow con ejecuciones', nodes: [], edges: [] }, updatedAt: '2026-11-27T12:00:00.000Z' }, published: null }, validationIssues: [] }) })
+    return route.fallback()
+  })
+  await page.route(`**/backend/auth/automation/workflows/${workflowId}/runs**`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ runs }) }))
+  await page.route('**/backend/auth/automation/runs/*/replay', async (route) => {
+    replayCount++
+    expect(route.request().postDataJSON()).toMatchObject({ dealerId })
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ run: { id: '40000000-0000-4000-8000-000000000002', status: 'queued', generation: 2 } }) })
+  })
+
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Automatizaciones', exact: true }).click()
+  await page.getByRole('button', { name: 'Nueva automatización' }).click()
+  await page.getByRole('textbox', { name: 'Nombre' }).fill('Workflow con ejecuciones')
+  await page.getByRole('button', { name: 'Crear borrador' }).click()
+  await page.getByRole('button', { name: 'Ejecuciones' }).click()
+  await expect(page.getByRole('heading', { name: 'opportunity.stage_changed' })).toBeVisible()
+  await expect(page.getByText('La actualización de la etapa falló.')).toBeVisible()
+  await expect(page.getByText('No se pudo actualizar la oportunidad.')).toBeVisible()
+  mkdirSync('output/evidence', { recursive: true })
+  await page.screenshot({ path: 'output/evidence/crm-05-i-historial-ejecuciones.png', fullPage: true })
+  await page.getByRole('button', { name: 'Reproducir desde el inicio' }).click()
+  await expect(page.getByRole('dialog', { name: '¿Reproducir esta ejecución?' })).toBeVisible()
+  await expect(page.getByText('puede volver a ejecutar acciones CRM.')).toBeVisible()
+  expect(replayCount).toBe(0)
+  await page.getByRole('button', { name: 'Confirmar' }).click()
+  await expect.poll(() => replayCount).toBe(1)
+})

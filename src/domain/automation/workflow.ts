@@ -24,6 +24,34 @@ export type WorkflowRecord = {
   published: { revision: number; definition: WorkflowDefinition; publishedAt: string } | null
 }
 
+export type AutomationRunStatus = 'queued' | 'running' | 'waiting' | 'succeeded' | 'failed' | 'dead_letter' | 'cancelled'
+export type AutomationRunStep = {
+  nodeId: string
+  nodeType: WorkflowNodeType
+  status: 'running' | 'succeeded' | 'failed' | 'cancelled'
+  attempts: number
+  output: unknown
+  error: string | null
+  startedAt: string | null
+  finishedAt: string | null
+}
+export type AutomationRun = {
+  id: string
+  status: AutomationRunStatus
+  generation: number
+  eventType: AutomationEvent
+  workflowRevision: number
+  currentNodeId: string | null
+  attempts: number
+  availableAt: string
+  lastError: string | null
+  createdAt: string
+  startedAt: string | null
+  finishedAt: string | null
+  steps: AutomationRunStep[]
+}
+export type AutomationRunActionResult = { run: Pick<AutomationRun, 'id' | 'status' | 'generation'> }
+
 export function validateWorkflow(definition: WorkflowDefinition): WorkflowIssue[] {
   const issues: WorkflowIssue[] = []
   const ids = new Set(definition.nodes.map((node) => node.id))

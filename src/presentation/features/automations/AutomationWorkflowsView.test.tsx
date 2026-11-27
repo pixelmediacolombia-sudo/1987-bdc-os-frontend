@@ -6,13 +6,14 @@ import type { WorkflowDefinition, WorkflowRecord } from '../../../domain/automat
 
 const mocks = vi.hoisted(() => ({
   listDealers: vi.fn(), list: vi.fn(), get: vi.fn(), create: vi.fn(), saveDraft: vi.fn(),
+  listRuns: vi.fn(), cancelRun: vi.fn(), retryRun: vi.fn(), replayRun: vi.fn(),
 }))
 
 afterEach(cleanup)
 
 vi.mock('../../../core/container', () => ({ appServices: {
   contacts: { listDealers: mocks.listDealers },
-  automationWorkflows: { list: mocks.list, get: mocks.get, create: mocks.create, saveDraft: mocks.saveDraft },
+  automationWorkflows: { list: mocks.list, get: mocks.get, create: mocks.create, saveDraft: mocks.saveDraft, listRuns: mocks.listRuns, cancelRun: mocks.cancelRun, retryRun: mocks.retryRun, replayRun: mocks.replayRun },
 } }))
 
 function blankRecord(name: string): WorkflowRecord {
@@ -26,6 +27,10 @@ describe('automation workflow canvas', () => {
     window.sessionStorage.clear()
     mocks.listDealers.mockResolvedValue([{ id: '30000000-0000-4000-8000-000000000001', name: 'Stafford Motors' }])
     mocks.list.mockResolvedValue([])
+    mocks.listRuns.mockResolvedValue([])
+    mocks.cancelRun.mockResolvedValue({ run: { id: 'run-1', status: 'cancelled', generation: 1 } })
+    mocks.retryRun.mockResolvedValue({ run: { id: 'run-1', status: 'queued', generation: 1 } })
+    mocks.replayRun.mockResolvedValue({ run: { id: 'run-2', status: 'queued', generation: 2 } })
     mocks.create.mockImplementation(async (_dealerId: string, name: string) => ({ workflow: blankRecord(name), validationIssues: [] }))
     mocks.saveDraft.mockImplementation(async (_dealerId: string, workflow: WorkflowRecord, name: string, definition: WorkflowDefinition) => ({
       workflow: { ...workflow, name, draft: { revision: workflow.draft.revision + 1, definition: { ...definition, name }, updatedAt: '2026-11-26T12:05:00.000Z' } }, validationIssues: [],
@@ -120,5 +125,33 @@ describe('automation workflow canvas', () => {
     expect(canvasShell.scrollTop).toBe(500)
     expect(viewportIndicator.style.top).not.toBe('12px')
     fireEvent.pointerUp(canvasShell, { pointerId: 7 })
+  })
+
+  it('loads execution history, shows steps, and confirms replay before calling the API', async () => {
+    const user = userEvent.setup()
+    const record = blankRecord('Historial de workflow')
+    mocks.create.mockResolvedValue({ workflow: record, validationIssues: [] })
+    mocks.listRuns.mockResolvedValue([{
+      id: 'run-1', status: 'failed', generation: 1, eventType: 'opportunity.stage_changed', workflowRevision: 2,
+      currentNodeId: null, attempts: 4, availableAt: '2026-11-27T12:00:00.000Z', lastError: 'Falló un paso de CRM',
+      createdAt: '2026-11-27T11:00:00.000Z', startedAt: '2026-11-27T11:01:00.000Z', finishedAt: '2026-11-27T11:02:00.000Z',
+      steps: [{ nodeId: 'node-1', nodeType: 'opportunity.update_stage', status: 'failed', attempts: 4, output: { message: 'Respuesta simulada' }, error: 'No se pudo cambiar la etapa', startedAt: '2026-11-27T11:01:00.000Z', finishedAt: '2026-11-27T11:02:00.000Z' }],
+    }])
+    render(<AutomationWorkflowsView search="" />)
+    await user.click(await screen.findByRole('button', { name: 'Crear automatización' }))
+    await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Historial de workflow')
+    await user.click(screen.getByRole('button', { name: 'Crear borrador' }))
+    await user.click(await screen.findByRole('button', { name: 'Ejecuciones' }))
+
+    expect(await screen.findByRole('heading', { name: 'opportunity.stage_changed' })).toBeTruthy()
+    expect(screen.getByText('Cambiar etapa')).toBeTruthy()
+    expect(screen.getByText('Falló un paso de CRM')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Reproducir desde el inicio' }))
+    expect(await screen.findByRole('dialog', { name: '¿Reproducir esta ejecución?' })).toBeTruthy()
+    expect(mocks.replayRun).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(mocks.replayRun).toHaveBeenCalledWith(expect.any(String), 'run-1', expect.any(String)))
+    await waitFor(() => expect(mocks.listRuns).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
