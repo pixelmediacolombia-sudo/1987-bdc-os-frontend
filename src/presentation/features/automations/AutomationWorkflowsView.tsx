@@ -30,10 +30,6 @@ const CANVAS_HEIGHT = 1150
 const MINIMAP_INSET = 12
 const MINIMAP_WIDTH = 124
 const MINIMAP_HEIGHT = 70
-const MINIMAP_FRAME_WIDTH = 150
-const MINIMAP_FRAME_HEIGHT = 96
-const MINIMAP_RIGHT = 14
-const MINIMAP_BOTTOM = 12
 const EDITOR_WORKFLOW_KEY = 'bdc-os:automation-editor:'
 
 export default function AutomationWorkflowsView({ search }: Props) {
@@ -54,7 +50,6 @@ export default function AutomationWorkflowsView({ search }: Props) {
   const [connectMessage, setConnectMessage] = useState('')
   const [savedNotice, setSavedNotice] = useState('')
   const canvasRef = useRef<HTMLDivElement>(null)
-  const minimapRef = useRef<HTMLDivElement>(null)
   const minimapViewportRef = useRef<HTMLSpanElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const panRef = useRef<PanState | null>(null)
@@ -65,11 +60,8 @@ export default function AutomationWorkflowsView({ search }: Props) {
     if (!shell) return
 
     const updateViewport = () => {
-      const minimap = minimapRef.current
       const viewport = minimapViewportRef.current
-      if (!minimap || !viewport) return
-      minimap.style.left = `${shell.scrollLeft + shell.clientWidth - MINIMAP_FRAME_WIDTH - MINIMAP_RIGHT}px`
-      minimap.style.top = `${shell.scrollTop + shell.clientHeight - MINIMAP_FRAME_HEIGHT - MINIMAP_BOTTOM}px`
+      if (!viewport) return
       const contentWidth = Math.max(shell.scrollWidth, shell.clientWidth)
       const contentHeight = Math.max(shell.scrollHeight, shell.clientHeight)
       const width = Math.min(MINIMAP_WIDTH, shell.clientWidth / contentWidth * MINIMAP_WIDTH)
@@ -274,10 +266,10 @@ export default function AutomationWorkflowsView({ search }: Props) {
               {node.type !== 'flow.end' && <button className="automation-node-drag" aria-label={`Mover ${nodeTitle(node)}`} onPointerDown={(event) => startMove(event, node)} onPointerMove={moveNode} onPointerUp={endMove}><Icon name="dots" size={14} /></button>}
             </article>)}
           </div>
-          <div className="automation-minimap" ref={minimapRef} aria-label="Minimapa del workflow">
-            <span ref={minimapViewportRef} style={{ left: MINIMAP_INSET, top: MINIMAP_INSET, width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }} />
-            {definition.nodes.map((node) => <i key={node.id} style={{ left: `${MINIMAP_INSET + node.position.x / CANVAS_WIDTH * MINIMAP_WIDTH}px`, top: `${MINIMAP_INSET + node.position.y / CANVAS_HEIGHT * MINIMAP_HEIGHT}px` }} />)}
-          </div>
+        </div>
+        <div className="automation-minimap" aria-label="Minimapa del workflow">
+          <span ref={minimapViewportRef} style={{ left: MINIMAP_INSET, top: MINIMAP_INSET, width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }} />
+          {definition.nodes.map((node) => <i key={node.id} style={{ left: `${MINIMAP_INSET + node.position.x / CANVAS_WIDTH * MINIMAP_WIDTH}px`, top: `${MINIMAP_INSET + node.position.y / CANVAS_HEIGHT * MINIMAP_HEIGHT}px` }} />)}
         </div>
         <footer className="automation-canvas-footer"><span>{connectMessage || (connectFrom ? 'Selecciona un nodo de destino.' : 'Selecciona un nodo para configurar. Arrástralo desde el control de movimiento.')}</span><span>{definition.nodes.length} nodos · {definition.edges.length} conexiones</span></footer>
       </div>

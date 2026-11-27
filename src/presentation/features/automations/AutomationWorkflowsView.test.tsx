@@ -113,8 +113,6 @@ describe('automation workflow canvas', () => {
 
     expect(viewportIndicator.style.top).not.toBe('12px')
     expect(viewportIndicator.style.left).not.toBe('12px')
-    expect(Number.parseFloat(minimap.style.left) - canvasShell.scrollLeft).toBe(436)
-    expect(Number.parseFloat(minimap.style.top) - canvasShell.scrollTop).toBe(292)
 
     canvasShell.setPointerCapture = vi.fn()
     fireEvent.pointerDown(canvasShell, { button: 0, pointerId: 7, clientX: 300, clientY: 300 })

@@ -91,6 +91,10 @@ test('dealer configures an opportunity stage action and saves the draft', async 
     const bounds = await minimap.boundingBox()
     return bounds ? { x: bounds.x, y: bounds.y } : null
   }).toEqual({ x: minimapBounds.x, y: minimapBounds.y })
+  const backBounds = await page.getByRole('button', { name: 'Volver a automatizaciones' }).boundingBox()
+  const nameBounds = await page.getByRole('textbox', { name: 'Nombre del borrador' }).boundingBox()
+  if (!backBounds || !nameBounds) throw new Error('Editor header controls are not visible')
+  expect(Math.abs(backBounds.y + backBounds.height / 2 - (nameBounds.y + nameBounds.height / 2))).toBeLessThanOrEqual(2)
   mkdirSync('output/evidence', { recursive: true })
   await page.screenshot({ path: 'output/evidence/crm-05-f-cambiar-etapa.png', fullPage: true })
   await page.reload()
