@@ -8,6 +8,23 @@ import LoginScreen from '../features/auth/LoginScreen'
 const localUser = { id: 'dealer-user', email: 'asesor@dealer.local', displayName: 'Asesor Dealer', accountType: 'user' as const }
 const localAdmin = { id: 'local-admin', email: 'admin@bdc-os.local', displayName: 'Admin BDC OS local', accountType: 'admin' as const }
 const jsonResponse = (payload: unknown, status = 200) => ({ ok: status < 400, status, json: async () => payload })
+const localDealer = { id: 'dealer-1', name: 'Dealer de prueba' }
+const dashboardData = {
+  metrics: { unreadConversations: 3, newContacts: 2, activeOpportunities: 1, pipelineValueCents: '2500000000' },
+  attention: [
+    { id: 'conversation-1', contactId: 'contact-1', name: 'Laura Méndez', channel: 'whatsapp', lastActivity: '2026-11-26T10:00:00.000Z', summary: 'Consulta por una SUV familiar.' },
+    { id: 'conversation-2', contactId: 'contact-2', name: 'Julián Torres', channel: 'messenger', lastActivity: '2026-11-26T09:00:00.000Z', summary: 'Pregunta por disponibilidad.' },
+    { id: 'conversation-3', contactId: 'contact-3', name: 'Valentina Cruz', channel: 'instagram', lastActivity: '2026-11-26T08:00:00.000Z', summary: 'Quiere agendar una visita.' },
+  ],
+  activities: [],
+}
+const opportunityStages = [
+  { stageKey: 'new', label: 'Nuevo', position: 0 },
+  { stageKey: 'working', label: 'En proceso', position: 1 },
+  { stageKey: 'closing', label: 'Cierre', position: 2 },
+  { stageKey: 'won', label: 'Ganada', position: 3 },
+  { stageKey: 'lost', label: 'Perdida', position: 4 },
+]
 const adminDealers = [
   { id: 'dealer-andino', name: 'Grupo Andino Motors', status: 'active', user_count: 5, pending_invitation_count: 0 },
   { id: 'dealer-valle', name: 'Autocentro del Valle', status: 'active', user_count: 3, pending_invitation_count: 0 },
@@ -26,69 +43,76 @@ function stubAdminApis() {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ authenticated: true, user: localUser })))
+  window.sessionStorage.clear()
+  vi.stubGlobal('fetch', vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.endsWith('/auth/session')) return Promise.resolve(jsonResponse({ authenticated: true, user: localUser }))
+    if (url.endsWith('/auth/contacts/dealers')) return Promise.resolve(jsonResponse({ dealers: [localDealer] }))
+    if (url.includes('/auth/dashboard?')) return Promise.resolve(jsonResponse(dashboardData))
+    if (url.includes('/auth/opportunities/stages?')) return Promise.resolve(jsonResponse({ stages: opportunityStages }))
+    if (url.includes('/auth/opportunities?')) return Promise.resolve(jsonResponse({ opportunities: [] }))
+    if (url.includes('/auth/conversations/assignees?')) return Promise.resolve(jsonResponse({ assignees: [] }))
+    if (url.includes('/auth/conversations?')) return Promise.resolve(jsonResponse({ conversations: [], total: 0, limit: 100, offset: 0 }))
+    return Promise.resolve(jsonResponse({}))
+  }))
 })
-afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); window.sessionStorage.clear(); vi.unstubAllGlobals() })
 
 async function renderDashboard() {
   render(<App />)
   await screen.findByRole('heading', { name: 'Tu operación, en un solo lugar' })
+  await screen.findByText('Laura Méndez')
 }
 
 describe('BDC OS CRM first screen', () => {
-  it('shows the demo dashboard and clearly labels local sample data', async () => {
+  it('shows dealer metrics and attention items returned by the API', async () => {
     await renderDashboard()
-    expect(screen.getAllByText('Entorno de prueba').length).toBeGreaterThan(0)
-    expect(screen.getByText(/Los indicadores y contactos son ficticios/)).toBeTruthy()
+    expect(screen.getByText('Conversaciones pendientes')).toBeTruthy()
+    const unreadMetric = screen.getByText('Conversaciones pendientes').closest('.metric') as HTMLElement | null
+    expect(unreadMetric && within(unreadMetric).getByText('3')).toBeTruthy()
+    expect(screen.getByText('Laura Méndez')).toBeTruthy()
     expect(screen.getByText('Asesor Dealer')).toBeTruthy()
   })
 
-  it('filters the work queue by priority and new contacts', async () => {
+  it('filters the work queue to its oldest conversation by priority', async () => {
     const user = userEvent.setup()
     await renderDashboard()
+    expect(screen.getByText('Julián Torres')).toBeTruthy()
+    expect(screen.getByText('Valentina Cruz')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Prioridad' }))
     expect(screen.getByText('Laura Méndez')).toBeTruthy()
-    expect(screen.getByText('Julián Torres')).toBeTruthy()
-    expect(screen.queryByText('Andrés Rojas')).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Nuevos' }))
-    expect(screen.getByText('Andrés Rojas')).toBeTruthy()
-    expect(screen.queryByText('Laura Méndez')).toBeNull()
+    expect(screen.queryByText('Julián Torres')).toBeNull()
+    expect(screen.queryByText('Valentina Cruz')).toBeNull()
   })
 
-  it('searches the demo contacts', async () => {
+  it('searches the dealer attention queue', async () => {
     const user = userEvent.setup()
     await renderDashboard()
     await user.type(screen.getByRole('textbox', { name: 'Buscar en el CRM' }), 'Valentina')
     expect(screen.getByText('Valentina Cruz')).toBeTruthy()
-    expect(screen.queryByText('Mariana Ospina')).toBeNull()
+    expect(screen.queryByText('Laura Méndez')).toBeNull()
   })
 
-  it('creates an in-memory demo opportunity without a backend write', async () => {
+  it('opens the live opportunities module from the dashboard action', async () => {
     const user = userEvent.setup()
     await renderDashboard()
     await user.click(screen.getByRole('button', { name: 'Nueva oportunidad' }))
-    const dialog = screen.getByRole('dialog', { name: 'Nueva oportunidad' })
-    await user.type(within(dialog).getByLabelText('Nombre del contacto'), 'Andrea Gómez')
-    await user.click(within(dialog).getByRole('button', { name: 'Crear en demo' }))
-    expect(screen.getByText('Andrea Gómez')).toBeTruthy()
-    expect(screen.queryByText(/solo vive en esta sesión/)).toBeNull()
+    expect(await screen.findByRole('heading', { name: 'Oportunidades' })).toBeTruthy()
   })
 
-  it('opens and closes a contact detail panel', async () => {
+  it('opens the inbox from the highest-priority conversation', async () => {
     const user = userEvent.setup()
     await renderDashboard()
     await user.click(screen.getByRole('button', { name: /Laura Méndez/ }))
-    expect(screen.getByRole('dialog', { name: 'Laura Méndez' })).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Cerrar detalle' }))
-    expect(screen.queryByRole('dialog', { name: 'Laura Méndez' })).toBeNull()
+    expect(await screen.findByRole('heading', { name: 'Bandeja' })).toBeTruthy()
   })
 
-  it('shows the first-delivery placeholder when selecting another module', async () => {
+  it('shows a first-delivery placeholder for a module that is not connected yet', async () => {
     const user = userEvent.setup()
     await renderDashboard()
-    await user.click(screen.getByRole('button', { name: 'Oportunidades' }))
-    expect(screen.getByRole('heading', { name: 'Oportunidades' })).toBeTruthy()
-    expect(screen.getByText(/aún no están conectados/)).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Reportes' }))
+    expect(screen.getByRole('heading', { name: 'Reportes' })).toBeTruthy()
+    expect(screen.getByText(/Esta sección se construirá por etapas/)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Volver al inicio' }))
     expect(screen.getByRole('heading', { name: 'Tu operación, en un solo lugar' })).toBeTruthy()
   })
@@ -103,7 +127,8 @@ describe('BDC OS CRM first screen', () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input)
       if (url.endsWith('/auth/contacts/dealers')) return Promise.resolve(jsonResponse({ dealers: [{ id: 'dealer-1', name: 'Dealer de prueba' }] }))
-      if (url.includes('/auth/contacts/contact-1?')) return Promise.resolve(jsonResponse({ contact: { ...contact, conversations: [{ id: 'conversation-1', channel: 'messenger', owner: null, state: 'open', lastActivity: contact.lastActivity, messages: [{ id: 'message-1', direction: 'inbound', senderType: 'contact', content: 'Consulta sintética de prueba', createdAt: contact.lastActivity }] }] } }))
+      if (url.includes('/auth/dashboard?')) return Promise.resolve(jsonResponse(dashboardData))
+      if (url.includes('/auth/contacts/contact-1?')) return Promise.resolve(jsonResponse({ contact: { ...contact, activities: [], conversations: [{ id: 'conversation-1', channel: 'messenger', owner: null, state: 'open', lastActivity: contact.lastActivity, messages: [{ id: 'message-1', direction: 'inbound', senderType: 'contact', content: 'Consulta sintética de prueba', createdAt: contact.lastActivity }] }] } }))
       if (url.includes('/auth/contacts?')) return Promise.resolve(jsonResponse({ contacts: [contact], total: 1, limit: 25, offset: 0 }))
       return Promise.resolve(jsonResponse({ authenticated: true, user: localUser }))
     })
